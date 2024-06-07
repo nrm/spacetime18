@@ -12,116 +12,138 @@ def cross_correlate_2d(x, h):
     h = np.fft.ifftshift(np.fft.ifftshift(h, axes=0), axes=1)
     return np.fft.ifft2(np.fft.fft2(x) * np.conj(np.fft.fft2(h)))
 
-def ccf_repro_images(crop,lay,ncut):
-    mcrop=np.zeros(lay.shape)
-    res=np.zeros(lay.shape)
+def ccf_repro_images(diff_crop,cropped_substrate,ncut, delta):
+    mcrop=np.zeros(cropped_substrate.shape)
+    res=np.zeros(cropped_substrate.shape)
     
-    cs=np.min(crop.shape)//ncut
+    cs=np.min(diff_crop.shape)//ncut
+
+    crop_coords = []
+    cropped_substrate_coords = []
     for i in range(ncut):
         for j in range(ncut):
             mcrop=mcrop*0
-            xcyc=np.array(lay.shape)//2-cs//2
+            xcyc=np.array(cropped_substrate.shape)//2-cs//2
             xc=xcyc[0]
             yc=xcyc[1]
-            mcrop[xc:xc+cs,yc:yc+cs]=crop[i*cs:(i+1)*cs,j*cs:(j+1)*cs]-np.mean(crop[i*cs:(i+1)*cs,j*cs:(j+1)*cs])
-
-            ccf = np.abs(cross_correlate_2d(mcrop, lay))  # !!!!!!
+            mcrop[xc:xc+cs,yc:yc+cs]=diff_crop[i*cs:(i+1)*cs,j*cs:(j+1)*cs]
+            
+            ccf = np.abs(cross_correlate_2d(mcrop, cropped_substrate))  # !!!!!!
             
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             snr = np.max(ccf) / np.mean(ccf)
             print(i,j,x,y,snr)
-            try:
-                if snr>7:
-                    res[xc*2-x:xc*2-x + cs, yc*2-y:yc*2-y + cs]=crop[i*cs:(i+1)*cs,j*cs:(j+1)*cs]
-            except:
-                continue
+            if snr>7:
+                crop_coords.append((i*cs,j*cs))
+                cropped_substrate_coords.append((xc*2+cs//2-x,yc*2+cs//2-y))
+                try:
+                    res[xc*2+cs//2-x:xc*2+cs//2-x + cs, yc*2+cs//2-y:yc*2+cs//2-y + cs]=diff_crop[i*cs:(i+1)*cs,j*cs:(j+1)*cs]
+                except:
+                    continue
 
     fig = plt.figure()
     fig.add_subplot(1, 3, 1)
-    plt.imshow(crop)
+    plt.imshow(diff_crop)
     fig.add_subplot(1, 3, 2)
-    plt.imshow(res)
+    plt.imshow(res[delta:-delta,delta:-delta])
     fig.add_subplot(1, 3, 3)
-    plt.imshow(lay)
+    plt.imshow(cropped_substrate[delta:-delta,delta:-delta])
     plt.show()
 
-    return 0
+    return crop_coords, cropped_substrate_coords, cs
 
-def calc_for_mults(crop,lay,im,jm,bPlot=False):
-    image1 = np.median(crop,axis=2)
-    image1[1:, :] = image1[:-1, :]-image1[1:, :]
-    image1[0, :]=np.zeros(len(image1[0, :]))
-    im2 = lay[::im, ::jm] * 1.0
+def calc_for_mults(diff_crop,substrate,mult_i,mult_j):
+    diff_substrate = substrate[::mult_i, ::mult_j] * 1.0
 
-    im2[1:,:]=im2[:-1,:]-im2[1:,:]
+    diff_substrate[1:,:]=diff_substrate[:-1,:]-diff_substrate[1:,:]
 
-    im2[0,:]=np.zeros(im2.shape[1])
+    diff_substrate[0,:]=np.zeros(diff_substrate.shape[1])
+    
+    ix, iy = diff_substrate.shape
+    im1 = np.zeros(diff_substrate.shape)
+    i1mx, i1my = diff_crop.shape
 
-    ix = im2.shape
-    im1 = np.zeros((ix[0], ix[1]))
-    med1 = np.mean(image1)
-    i1mx = image1.shape[0]
-    i1my = image1.shape[1]
-
-    im1[ix[0] // 2:ix[0] // 2 + i1mx, ix[1] // 2:ix[1] // 2 + i1my] = image1 * 1.0 - med1
-    if bPlot:
-        fig = plt.figure()
-        fig.add_subplot(1, 2, 1)
-        plt.imshow(image1 * 1.0 - med1)
-        fig.add_subplot(1, 2, 2)
-    ccf = np.abs(cross_correlate_2d(im1, im2))  # !!!!!!
-    x, y = np.unravel_index(ccf.argmax(), ccf.shape)
-    snr = np.max(ccf) / np.mean(ccf)
-    if bPlot:
-        print(im, jm, np.unravel_index(ccf.argmax(), ccf.shape), ix - x, ix - y)
-        print('ccf_max=', np.max(ccf) / np.mean(ccf))
-        delta = 10
-        im2__ = im2[ix[0] - x - delta:ix[0] - x + i1mx + delta, ix[1] - y - delta:ix[1] - y + i1my + delta] * 1.0 - med
-        plt.imshow(im2__)
-        plt.show()
-        ccf_repro_images(image1 * 1.0 - med1, im2__, 4)
-    return snr
+    im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my] = diff_crop
+    ccf = np.abs(cross_correlate_2d(im1, diff_substrate))  # !!!!!!
+    return ccf
 
 
-def initial_search(crop,lay,mults,fn):
-    bPlot=False
-    best=0
+def initial_search(diff_crop, substrate, mults):
+    best_ccf=np.zeros(diff_crop.shape)
+    best_snr=0
     optm=(0,0)
-    for im in mults:
-        for jm in mults:
-            snr=calc_for_mults(crop,lay,im,jm)
-            if snr > best:
-                optm = (im, jm)
-                best = snr
+    
+    for mult_i in mults:
+        for mult_j in mults:
+            ccf=calc_for_mults(diff_crop,substrate,mult_i,mult_j)
+            snr = np.max(ccf) / np.mean(ccf)
+            if snr > best_snr:
+                optm = (mult_i, mult_j)
+                best_ccf = ccf
+                best_snr = snr
+    return best_ccf, optm
 
-    print(fn,' SNR:{:.1f}'.format(best),' mults:',optm)
-    calc_for_mults(crop, lay, optm[0], optm[1],bPlot=True)
-    return 0
+def process_crop(crop_file_name, substrate, mults):
+    crop = tifffile.imread(crop_file_name)
+
+    diff_crop = np.median(crop,axis=2)
+    diff_crop = diff_crop - np.mean(diff_crop) * 1.0
+    diff_crop[1:, :] = diff_crop[:-1, :]-diff_crop[1:, :]
+    diff_crop[0, :]=np.zeros(diff_crop.shape[1])
+
+    best_ccf, optm = initial_search(diff_crop, substrate, mults)
+
+    print(crop_file_name,' SNR:{:.1f}'.format(np.max(best_ccf) / np.mean(best_ccf)),' mults:',optm)
+    x, y = np.unravel_index(best_ccf.argmax(), best_ccf.shape)
+    
+    diff_substrate = substrate[::optm[0], ::optm[1]] * 1.0
+    diff_substrate[1:,:]=diff_substrate[:-1,:]-diff_substrate[1:,:]
+    diff_substrate[0,:]=np.zeros(diff_substrate.shape[1])
+    
+    ix, iy = diff_substrate.shape
+    im1 = np.zeros(diff_substrate.shape)
+    i1mx, i1my = diff_crop.shape
+    im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my] = diff_crop
+    print(optm[0], optm[1], np.unravel_index(best_ccf.argmax(), best_ccf.shape), ix - x, iy - y)
+    print('ccf_max=', np.max(best_ccf) / np.mean(best_ccf))
+    delta = 10
+    cropped_substrate = diff_substrate[max(ix - x - delta,0):min(ix - x + i1mx + delta,ix), max(iy - y - delta,0):min(iy - y + i1my + delta, iy)]
+    
+    fig = plt.figure()
+    fig.add_subplot(1, 2, 1)
+    plt.imshow(diff_crop)
+    fig.add_subplot(1, 2, 2)
+    plt.imshow(cropped_substrate)
+    plt.show()
+
+    crop_coords, cropped_substrate_coords, cs = ccf_repro_images(diff_crop, cropped_substrate, ncut=4, delta=delta)
+    
+    substrate_coords= [(tmp_cord[0] + max(ix - x - delta,0), tmp_cord[1] + max(iy - y - delta,0)) for tmp_cord in crop_coords]
+        
+    return crop_coords, substrate_coords
 
 if __name__ == "__main__":
     #substrate = tifffile.imread('layouts/layout_2021-06-15.tif')
-    substrate_orig = tifffile.imread('layouts/layout_2021-08-16.tif')
+    substrate = tifffile.imread('layouts/layout_2021-08-16.tif')
     #substrate = tifffile.imread('layouts/layout_2021-10-10.tif')
     #substrate = tifffile.imread('layouts/layout_2022-03-17.tif')
     
-    substrate=np.median(substrate_orig,axis=2)
+    substrate=np.median(substrate,axis=2)
     
-    med=np.median(substrate)
-    im2=(substrate-med)*1.0
-    ix=im2.shape[0]
+    substrate=(substrate-np.mean(substrate))*1.0
     
-    im2=np.where(np.abs(im2)>10000,0,im2)
-    med=np.mean(im2)
-    im2=im2-med
+    substrate=np.where(np.abs(substrate)>10000,0,substrate)
+    # substrate=np.where(np.abs(substrate)>10000,10000,substrate)
     
-    plt.imshow(im2)
+    plt.imshow(substrate)
     plt.show()
-    
-    # exit(0)
     
     mults=[5,6,7,8,9,10]
     for i in range(0,5):
         for j in range(0,4):
-            fn='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            image1 = tifffile.imread(fn)
-            initial_search(image1,im2,mults,fn)
+            crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            crop_coords, substrate_coords = process_crop(crop_file_name, substrate, mults)
+
+            print(crop_coords)
+            print(substrate_coords)
+            exit(0)
