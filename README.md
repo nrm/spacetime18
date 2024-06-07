@@ -1,5 +1,15 @@
 # images
 
+## Пример запуска приложения с API
+
+```sh
+python -m venv venv
+source venv/bin/activate
+pip install fastapi uvicorn numpy tifffile scipy
+
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
 ## Пример работы с API
 
 ```sh
