@@ -12,7 +12,7 @@ def cross_correlate_2d(x, h):
     h = np.fft.ifftshift(np.fft.ifftshift(h, axes=0), axes=1)
     return np.fft.ifft2(np.fft.fft2(x) * np.conj(np.fft.fft2(h)))
 
-def ccf_repro_images(diff_crop,cropped_substrate,ncut, delta):
+def ccf_repro_images(diff_crop,cropped_substrate,ncut):
     mcrop=np.zeros(cropped_substrate.shape)
     res=np.zeros(cropped_substrate.shape)
     
@@ -45,9 +45,9 @@ def ccf_repro_images(diff_crop,cropped_substrate,ncut, delta):
     fig.add_subplot(1, 3, 1)
     plt.imshow(diff_crop)
     fig.add_subplot(1, 3, 2)
-    plt.imshow(res[delta:-delta,delta:-delta])
+    plt.imshow(res)
     fig.add_subplot(1, 3, 3)
-    plt.imshow(cropped_substrate[delta:-delta,delta:-delta])
+    plt.imshow(cropped_substrate)
     plt.show()
 
     return crop_coords, cropped_substrate_coords, cs
@@ -116,7 +116,7 @@ def process_crop(crop_file_name, substrate, mults):
     plt.imshow(cropped_substrate)
     plt.show()
 
-    crop_coords, cropped_substrate_coords, cs = ccf_repro_images(diff_crop, cropped_substrate, ncut=4, delta=delta)
+    crop_coords, cropped_substrate_coords, cs = ccf_repro_images(diff_crop, cropped_substrate, ncut=4)
     
     substrate_coords= [(tmp_cord[0] + max(ix - x - delta,0), tmp_cord[1] + max(iy - y - delta,0)) for tmp_cord in crop_coords]
         
