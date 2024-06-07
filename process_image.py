@@ -196,10 +196,8 @@ def scale_image(image, multx, multy):
 
 
 
-def process_crop(crop_file_name, substrate, mults):
+def process_crop(crop, crop_file_name, substrate, mults):
     deriv_type='complex'
-    crop = tifffile.imread(crop_file_name)
-
     med_crop = np.median(crop,axis=2)
 
     #diff_crop = diff_crop - np.mean(diff_crop) * 1.0
@@ -303,9 +301,9 @@ if __name__ == "__main__":
 
             fig = plt.figure()
             fig.add_subplot(1, 2, 1)
-            plt.imshow(crop[:,:,0])
+            plt.imshow(crop[:,:,0],vmax=1000)
             fig.add_subplot(1, 2, 2)
             len_a = int(coef_a*crop.shape[0]+coef_b*crop.shape[1])
             len_b = int(coef_c*crop.shape[0]+coef_d*crop.shape[1])
-            plt.imshow(substrate_orig[x_0:x_0+len_a, y_0:y_0+len_b,0])
+            plt.imshow(substrate_orig[x_0:x_0+len_a, y_0:y_0+len_b,0],vmax=1000)
             plt.show()
