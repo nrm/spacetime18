@@ -84,9 +84,7 @@ def initial_search(diff_crop, substrate, mults):
                 best_snr = snr
     return best_ccf, optm
 
-def process_crop(crop_file_name, substrate, mults):
-    crop = tifffile.imread(crop_file_name)
-
+def process_crop(crop, crop_file_name, substrate, mults):
     diff_crop = np.median(crop,axis=2)
     diff_crop = diff_crop - np.mean(diff_crop) * 1.0
     diff_crop[1:, :] = diff_crop[:-1, :]-diff_crop[1:, :]
@@ -119,17 +117,17 @@ def process_crop(crop_file_name, substrate, mults):
 
     crop_coords, cropped_substrate_coords, cs = ccf_repro_images(diff_crop, cropped_substrate, ncut=4)
     
-    substrate_coords= [(tmp_cord[0] + max(ix - x - delta,0), tmp_cord[1] + max(iy - y - delta,0)) for tmp_cord in cropped_substrate_coords]
+    substrate_coords= [((tmp_cord[0] + max(ix - x - delta,0))*optm[0], (tmp_cord[1] + max(iy - y - delta,0))*optm[1]) for tmp_cord in cropped_substrate_coords]
         
-    return crop_coords, substrate_coords
+    return crop_coords, substrate_coords, optm, crop
 
 if __name__ == "__main__":
     #substrate = tifffile.imread('layouts/layout_2021-06-15.tif')
-    substrate = tifffile.imread('layouts/layout_2021-08-16.tif')
+    substrate_orig = tifffile.imread('layouts/layout_2021-08-16.tif')
     #substrate = tifffile.imread('layouts/layout_2021-10-10.tif')
     #substrate = tifffile.imread('layouts/layout_2022-03-17.tif')
     
-    substrate=np.median(substrate,axis=2)
+    substrate=np.median(substrate_orig,axis=2)
     
     substrate=(substrate-np.mean(substrate))*1.0
     
@@ -143,14 +141,32 @@ if __name__ == "__main__":
     for i in range(0,5):
         for j in range(0,4):
             crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            crop_coords, substrate_coords = process_crop(crop_file_name, substrate, mults)
+            crop = tifffile.imread(crop_file_name)
+            crop_coords, substrate_coords, optm, crop = process_crop(crop, crop_file_name, substrate, mults)
 
-            print(crop_coords)
-            print(substrate_coords)
+            # print(crop_coords)
+            # print(substrate_coords)
             x_0, y_0 = substrate_coords[0][0], substrate_coords[0][1]
             x_old, y_old = np.array(crop_coords)[:,0], np.array(crop_coords)[:,1]
             x = np.array(substrate_coords)[:,0] - x_0
             y = np.array(substrate_coords)[:,1] - y_0
             model = LinearRegression().fit(np.transpose(np.array([x_old,y_old])), np.transpose(np.array([x,y])))
-            print('coef:', model.coef_)
+            # print('coef:', model.coef_)
+            coef_a = model.coef_[0][0]
+            coef_b = model.coef_[0][1]
+            coef_c = model.coef_[1][0]
+            coef_d = model.coef_[1][1]
+            # print ('a:{:.1f}, d:{:.1f}'.format(coef_a, coef_d))
+            # print(max(coef_a, coef_d) / min(coef_a, coef_d))
+            # print(max(optm) / min(optm))
+            # print(max(crop.shape[0:2]) / min(crop.shape[0:2]))
+
+            fig = plt.figure()
+            fig.add_subplot(1, 2, 1)
+            plt.imshow(crop[:,:,0])
+            fig.add_subplot(1, 2, 2)
+            len_a = int(coef_a*crop.shape[0]+coef_b*crop.shape[1])
+            len_b = int(coef_c*crop.shape[0]+coef_d*crop.shape[1])
+            plt.imshow(substrate_orig[x_0:x_0+len_a, y_0:y_0+len_b,0])
+            plt.show()
             exit(0)
