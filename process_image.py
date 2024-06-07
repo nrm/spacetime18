@@ -5,6 +5,7 @@ import glob
 from scipy import signal
 import scipy
 import cv2
+from sklearn.linear_model import LinearRegression
 
 from geotiff import GeoTiff
 
@@ -146,10 +147,10 @@ if __name__ == "__main__":
 
             print(crop_coords)
             print(substrate_coords)
-            x0y0_minicrop = crop_coords
-            xy_minicrop = substrate_coords
-            f = open('xy/'+crop_file_name[5:len(crop_file_name)-3]+'dat', 'w')
-            for h in range(0, len(x0y0_minicrop)):
-                f.write(str(x0y0_minicrop[h][0]) + "  " + str(x0y0_minicrop[h][1]) + "  " + str(xy_minicrop[h][0]) + "  " + str(xy_minicrop[h][1]) + "\n")
-            f.close()
+            x_0, y_0 = substrate_coords[0][0], substrate_coords[0][1]
+            x_old, y_old = np.array(crop_coords)[:,0], np.array(crop_coords)[:,1]
+            x = np.array(substrate_coords)[:,0] - x_0
+            y = np.array(substrate_coords)[:,1] - y_0
+            model = LinearRegression().fit(np.transpose(np.array([x_old,y_old])), np.transpose(np.array([x,y])))
+            print('coef:', model.coef_)
             exit(0)
