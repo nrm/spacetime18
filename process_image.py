@@ -118,7 +118,7 @@ def process_crop(crop_file_name, substrate, mults):
 
     crop_coords, cropped_substrate_coords, cs = ccf_repro_images(diff_crop, cropped_substrate, ncut=4)
     
-    substrate_coords= [(tmp_cord[0] + max(ix - x - delta,0), tmp_cord[1] + max(iy - y - delta,0)) for tmp_cord in crop_coords]
+    substrate_coords= [(tmp_cord[0] + max(ix - x - delta,0), tmp_cord[1] + max(iy - y - delta,0)) for tmp_cord in cropped_substrate_coords]
         
     return crop_coords, substrate_coords
 
