@@ -146,4 +146,10 @@ if __name__ == "__main__":
 
             print(crop_coords)
             print(substrate_coords)
+            x0y0_minicrop = crop_coords
+            xy_minicrop = substrate_coords
+            f = open('xy/'+crop_file_name[5:len(crop_file_name)-3]+'dat', 'w')
+            for h in range(0, len(x0y0_minicrop)):
+                f.write(str(x0y0_minicrop[h][0]) + "  " + str(x0y0_minicrop[h][1]) + "  " + str(xy_minicrop[h][0]) + "  " + str(xy_minicrop[h][1]) + "\n")
+            f.close()
             exit(0)
