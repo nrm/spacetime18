@@ -13,6 +13,7 @@ import rasterio
 
 from geotiff import GeoTiff
 
+#ShowPlot = True
 ShowPlot = False
 bSaveLog = True
 log_file = None
@@ -90,7 +91,7 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
 
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             snr = np.max(ccf) / np.mean(ccf)
-            print(i, j, x, y, snr)
+            #print(i, j, x, y, snr)
             if snr > 15:
                 try:
                     res[xc * 2 + cs[0] // 2 - x:xc * 2 + cs[0] // 2 - x + cs[0],
@@ -119,10 +120,12 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
 
 
 def make_derivative(data0,mult_x,mult_y,result_type='x'):
-#    indices1=np.round(np.arange(0,data0.shape[1]-mult_y,mult_y)).astype(int)
-#    indices2=np.round(np.arange(0,data0.shape[0]-mult_x,mult_x)).astype(int)
-#    data = data0[:,indices1][indices2]
-    data = data0[::mult_x,::mult_y] * 1.0
+    if int(mult_x)!= mult_x or int(mult_y)!= mult_y:
+        indices1=np.round(np.arange(0,data0.shape[1]-mult_y,mult_y)).astype(int)
+        indices2=np.round(np.arange(0,data0.shape[0]-mult_x,mult_x)).astype(int)
+        data = data0[:,indices1][indices2]
+    else:
+        data = data0[::mult_x,::mult_y] * 1.0
     data_x = data * 1.0
     data_x[1:, :] = data[:-1, :]-data[1:, :]
     data_x[0, :]=np.zeros(data.shape[1])
@@ -147,7 +150,7 @@ def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr
 #    diff_substrate[1:,:]=diff_substrate[:-1,:]-diff_substrate[1:,:]
 
 #    diff_substrate[0,:]=np.zeros(diff_substrate.shape[1])
-    #print(mult_j,mult_i)
+#    print(mult_j,mult_i)
     diff_substrate=make_derivative(substrate,mult_i,mult_j,deriv_type)
     
     ix, iy = diff_substrate.shape
@@ -159,10 +162,11 @@ def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr
 
     im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my] = diff_crop
     ccf = np.abs(cross_correlate_2d(im1, diff_substrate))  # !!!!!!
+    x, y = np.unravel_index(ccf.argmax(), ccf.shape)
     snr = np.max(ccf) / np.mean(ccf)
     if return_type=='snr':
         print((snr,mult_i,mult_j))
-        return (snr,mult_i,mult_j)
+        return (snr,mult_i,mult_j,x,y)
     else:
         return ccf
 
@@ -175,17 +179,17 @@ def initial_search(diff_crop, substrate, mults,deriv_type):
     best_snr=0
     optm=(0,0)
     parlist=[]
-    for mult_i in mults:
-        for mult_j in mults:
+    for mult_i in mults[0]:
+        for mult_j in mults[1]:
             parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type))
 
     snrs=Parallel(n_jobs=16)(delayed(calc_for_mults)(*i) for i in parlist)
     ii=0
-    for mult_i in mults:
-        for mult_j in mults:
+    for mult_i in mults[0]:
+        for mult_j in mults[1]:
             snr=snrs[ii][0]
             if snr > best_snr:
-                optm = (snrs[ii][1], snrs[ii][2])
+                optm = (snrs[ii][1], snrs[ii][2],snrs[ii][3],snrs[ii][4])
                 best_snr = snr
             ii += 1
     #print("hello")
@@ -193,7 +197,7 @@ def initial_search(diff_crop, substrate, mults,deriv_type):
     print('time:',end-start)
     if bSaveLog:
         log_file.write('initial_search best SNR:{}\n'.format(best_snr))
-    return optm
+    return optm,best_snr
 
 #def extrapolate_crop(crop,mx,my):
 def scale_image(image, multx, multy):
@@ -235,6 +239,8 @@ def scale_image(image, multx, multy):
     return scaled_image
 
 
+#def make_cropped_substate():
+
 
 def process_crop(crop, crop_file_name, substrate, mults):
     deriv_type='complex'
@@ -245,16 +251,13 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    optm = initial_search(diff_crop, substrate, mults, deriv_type)
+    optm,best_snr = initial_search(diff_crop, substrate, mults, deriv_type)
     #exit(0)
-    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
+#    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
 
-    print(crop_file_name,' SNR:{:.1f}'.format(np.max(best_ccf) / np.mean(best_ccf)),' mults:',optm)
-    x, y = np.unravel_index(best_ccf.argmax(), best_ccf.shape)
+    print(crop_file_name,' SNR:{:.1f}'.format(best_snr),' mults:',optm)
+    x, y = optm[2],optm[3]
     
-    #diff_substrate = substrate[::optm[0], ::optm[1]] * 1.0
-    #diff_substrate[1:,:]=diff_substrate[:-1,:]-diff_substrate[1:,:]
-    #diff_substrate[0,:]=np.zeros(diff_substrate.shape[1])
     diff_substrate = make_derivative(substrate,optm[0], optm[1],deriv_type)
     
     ix, iy = diff_substrate.shape
@@ -263,14 +266,21 @@ def process_crop(crop, crop_file_name, substrate, mults):
         im1 = np.zeros(diff_substrate.shape,dtype=complex)
     i1mx, i1my = diff_crop.shape
     im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my] = diff_crop
-    print(optm[0], optm[1], np.unravel_index(best_ccf.argmax(), best_ccf.shape), ix - x, iy - y)
-    print('ccf_max=', np.max(best_ccf) / np.mean(best_ccf))
+    #print(optm[0], optm[1], np.unravel_index(best_ccf.argmax(), best_ccf.shape), ix - x, iy - y)
+    #print('ccf_max=', np.max(best_ccf) / np.mean(best_ccf))
     delta = 10
     cropped_substrate = diff_substrate[max(ix - x - delta,0):min(ix - x + i1mx + delta,ix), max(iy - y - delta,0):min(iy - y + i1my + delta, iy)]
-    delta = 10
+    
+    
+    delta = 300
     cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
+    
+    new_mults=[np.arange(optm[0]-0.6,optm[0]+0.6,0.1),np.arange(optm[1]-0.6,optm[1]+0.6,0.1)]
+    optm, snr_refined = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type)
+    print('optm1:',optm, ' SNR_refined:',snr_refined)
+       
     cropped_substrateHD = make_derivative(cropped_substrateHD,1,1,deriv_type)
-
+    
     crop_HD = scale_image(med_crop,optm[1],optm[0])
     crop_HD = make_derivative(crop_HD,1,1,deriv_type)
     
@@ -333,15 +343,15 @@ if __name__ == "__main__":
     print('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat')
             
     
-    if ShowPlot:
-        plt.imshow(substrate)
-        plt.show()
+#    if ShowPlot:
+#        plt.imshow(substrate)
+#        plt.show()
     
-    mults=[5,6,7,8,9,10]
+    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
-    for i in range(1,5):
+    for i in range(0,5):
         for j in range(0,4):
     #for i in range(0,8):
     #    for j in range(0,5):
