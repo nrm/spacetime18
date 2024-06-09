@@ -55,7 +55,7 @@ def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
                 bottom_right = pixel_to_geo(right, lower, transform)
 
                 # Выводим геокоординаты плитки
-                file_coord.write('crop_{}_{}_0000\n'.format(x,y))
+                file_coord.write('crop_{}_{}_0000\n'.format(y,x))
                 print(f"Tile ({x}, {y}):")
                 print(f"  Top-left: {top_left}")
                 print(f"  Top-right: {top_right}")

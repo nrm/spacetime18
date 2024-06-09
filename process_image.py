@@ -329,8 +329,8 @@ if __name__ == "__main__":
     mults=[5,6,7,8,9,10]
     # for i in range(0,5):
     #     for j in range(0,4):
-    for i in range(0,8):
-        for j in range(0,4):
+    for i in range(0,4):
+        for j in range(0,8):
             # crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
             crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             crop = tifffile.imread(crop_file_name)
