@@ -7,9 +7,13 @@ import scipy
 import cv2
 from sklearn.linear_model import LinearRegression
 from joblib import Parallel, delayed
+import argparse
+import rasterio
 
 
 from geotiff import GeoTiff
+
+ShowPlot = False
 
 def cross_correlate_2d(x, h):
     h = np.fft.ifftshift(np.fft.ifftshift(h, axes=0), axes=1)
@@ -44,14 +48,15 @@ def ccf_repro_images(diff_crop,cropped_substrate,ncut):
                 except:
                     continue
 
-    fig = plt.figure()
-    fig.add_subplot(1, 3, 1)
-    plt.imshow(np.abs(diff_crop))
-    fig.add_subplot(1, 3, 2)
-    plt.imshow(np.abs(res))
-    fig.add_subplot(1, 3, 3)
-    plt.imshow(np.abs(cropped_substrate))
-    plt.show()
+    if ShowPlot:
+        fig = plt.figure()
+        fig.add_subplot(1, 3, 1)
+        plt.imshow(np.abs(diff_crop))
+        fig.add_subplot(1, 3, 2)
+        plt.imshow(np.abs(res))
+        fig.add_subplot(1, 3, 3)
+        plt.imshow(np.abs(cropped_substrate))
+        plt.show()
 
     return crop_coords, cropped_substrate_coords, cs
 
@@ -71,14 +76,18 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
             #xcyc = np.array(cropped_substrate.shape) // 2 - cs // 2
             xc = cropped_substrate.shape[0] // 2 - cs[0]//2
             yc = cropped_substrate.shape[1] // 2 - cs[1]//2
-            mcrop[xc:xc + cs[0], yc:yc + cs[1]] = diff_crop[i * cs[0]:(i + 1) * cs[0], j * cs[1]:(j + 1) * cs[1]]
+            
+            try:
+                mcrop[xc:xc + cs[0], yc:yc + cs[1]] = diff_crop[i * cs[0]:(i + 1) * cs[0], j * cs[1]:(j + 1) * cs[1]]
+            except:
+                continue
 
             ccf = np.abs(cross_correlate_2d(mcrop, cropped_substrate))  # !!!!!!
 
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             snr = np.max(ccf) / np.mean(ccf)
             print(i, j, x, y, snr)
-            if snr > 10:
+            if snr > 15:
                 try:
                     res[xc * 2 + cs[0] // 2 - x:xc * 2 + cs[0] // 2 - x + cs[0],
                     yc * 2 + cs[1] // 2 - y:yc * 2 + cs[1] // 2 - y + cs[1]] = diff_crop[i * cs[0]:(i + 1) * cs[0],
@@ -91,14 +100,16 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
 
     #plt.hist(np.abs(diff_crop).flatten(),bins=1000)
     #plt.show()
-    fig = plt.figure()
-    fig.add_subplot(1, 3, 1)
-    plt.imshow(np.abs(diff_crop),vmax=3)
-    fig.add_subplot(1, 3, 2)
-    plt.imshow(np.abs(res),vmax=3)
-    fig.add_subplot(1, 3, 3)
-    plt.imshow(np.abs(cropped_substrate),vmax=500)
-    plt.show()
+    if ShowPlot:
+        fig = plt.figure()
+        fig.add_subplot(1, 3, 1)
+        plt.imshow(np.abs(diff_crop),vmax=3)
+        fig.add_subplot(1, 3, 2)
+        plt.imshow(np.abs(res),vmax=3)
+        fig.add_subplot(1, 3, 3)
+        plt.imshow(np.abs(cropped_substrate),vmax=500)
+        fig.suptitle('Кроп, миникропы, подложка')
+        plt.show()
 
     return crop_coords, cropped_substrate_coords, cs
 
@@ -253,15 +264,17 @@ def process_crop(crop, crop_file_name, substrate, mults):
 
     crop_HD = scale_image(med_crop,optm[1],optm[0])
     crop_HD = make_derivative(crop_HD,1,1,deriv_type)
+    
+    if ShowPlot:
+        fig = plt.figure()
+        fig.add_subplot(1, 2, 1)
+        plt.imshow(np.abs(diff_crop))
+        fig.add_subplot(1, 2, 2)
+        plt.imshow(np.abs(cropped_substrate))
+        fig.suptitle('Метод производной для загрубленной подложки')
+        plt.show()
 
-    fig = plt.figure()
-    fig.add_subplot(1, 2, 1)
-    plt.imshow(np.abs(diff_crop))
-    fig.add_subplot(1, 2, 2)
-    plt.imshow(np.abs(cropped_substrate))
-    plt.show()
-
-    if True:
+    if ShowPlot:
         #tmp=np.abs(cropped_substrateHD)*1.0
         #plt.hist(tmp.flatten(),bins=1000)
         #plt.show()
@@ -270,6 +283,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
         plt.imshow(np.abs(crop_HD))
         fig.add_subplot(1, 2, 2)
         plt.imshow(np.abs(cropped_substrateHD),vmax=500)
+        fig.suptitle('Метод производной для подложки full HD')
         plt.show()
 
 
@@ -285,10 +299,15 @@ def process_crop(crop, crop_file_name, substrate, mults):
     return crop_coords, substrate_coords, optm
 
 if __name__ == "__main__":
-    #substrate_orig = tifffile.imread('layouts/layout_2021-06-15.tif')   #
-    substrate_orig = tifffile.imread('layouts/layout_2021-08-16.tif')   #original
-    #substrate_orig = tifffile.imread('layouts/layout_2021-10-10.tif')
-#    substrate_orig = tifffile.imread('layouts/layout_2022-03-17.tif')
+    # substrate_orig = tifffile.imread('layouts/layout_2021-06-15.tif')   #
+    # substrate_orig = tifffile.imread('layouts/layout_2021-08-16.tif')   #original
+    # substrate_orig = tifffile.imread('layouts/layout_2021-10-10.tif')
+    # substrate_orig = tifffile.imread('layouts/layout_2022-03-17.tif')
+    
+    parser = argparse.ArgumentParser(description="Get name of substrate")
+    parser.add_argument('substrate_path', type=str, help ='Path to the substrate file')
+    args = parser.parse_args()
+    substrate_orig = tifffile.imread(args.substrate_path)
     
     substrate=np.median(substrate_orig,axis=2)
     
@@ -297,8 +316,15 @@ if __name__ == "__main__":
     substrate=np.where(np.abs(substrate)>10000,0,substrate)
     # substrate=np.where(np.abs(substrate)>10000,10000,substrate)
     
-   # plt.imshow(substrate)
-   # plt.show()
+    with rasterio.open(args.substrate_path) as src:
+        transform = src.transform
+    file_coord = open('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat', 'w')
+    print('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat')
+            
+    
+    if ShowPlot:
+        plt.imshow(substrate)
+        plt.show()
     
     mults=[5,6,7,8,9,10]
     for i in range(0,5):
@@ -310,6 +336,8 @@ if __name__ == "__main__":
             # print(crop_coords)
             # print(substrate_coords)
 #            x_0, y_0 = substrate_coords[0][0], substrate_coords[0][1]
+            if crop_coords == []:
+                continue
             x_old, y_old = np.array(crop_coords)[:,0], np.array(crop_coords)[:,1]
             x = np.array(substrate_coords)[:,0]# - x_0
             y = np.array(substrate_coords)[:,1]# - y_0
@@ -327,13 +355,21 @@ if __name__ == "__main__":
             # print(max(coef_a, coef_d) / min(coef_a, coef_d))
             # print(max(optm) / min(optm))
             # print(max(crop.shape[0:2]) / min(crop.shape[0:2]))
+            
+            y1,x1 = int(x_0 + (coef_a*0+coef_b*0)*optm[0]),                         int(y_0 + (coef_c*0+coef_d*0)*optm[1])
+            y2,x2 = int(x_0 + (coef_a*crop.shape[0]+coef_b*0)*optm[0]),             int(y_0 + (coef_c*crop.shape[0]+coef_d*0)*optm[1])
+            y3,x3 = int(x_0 + (coef_a*crop.shape[0]+coef_b*crop.shape[1])*optm[0]), int(y_0 + (coef_c*crop.shape[0]+coef_d*crop.shape[1])*optm[1])
+            y4,x4 = int(x_0 + (coef_a*0+coef_b*crop.shape[1])*optm[0]),             int(y_0 + (coef_c*0+coef_d*crop.shape[0])*optm[1])
+            
+            print("******")
+            print(x1,y1)
+            print(x2,y2)
+            print(x3,y3)
+            print(x4,y4)
+            print("_____")
 
-            fig = plt.figure()
-            fig.add_subplot(1, 2, 1)
-            plt.imshow(crop[:,:,0],vmax=1000)
-            fig.add_subplot(1, 2, 2)
-            len_a = int(coef_a*crop.shape[0]+coef_b*crop.shape[1])
-            len_b = int(coef_c*crop.shape[0]+coef_d*crop.shape[1])
+            # len_a = int(coef_a*crop.shape[0]+coef_b*crop.shape[1])
+            # len_b = int(coef_c*crop.shape[0]+coef_d*crop.shape[1])
             #sub0= make_derivative(substrate,1,1,'complex')
             sub0= substrate*1.0
 
@@ -352,10 +388,28 @@ if __name__ == "__main__":
                     maxix = max(maxix, x)
                     miniy = min(miniy, y)
                     maxiy = max(maxiy, y)
+                
+            pixels = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
 
-
+            file_coord.write('crop_{}_{}_0000\n'.format(i,j))
+            for pixel in pixels:
+                spatial_coordinate = transform * (pixel[0], pixel[1])
+                file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
+                file_coord.flush()
+            
+            fig = plt.figure(figsize=(10, 8))
+            fig.add_subplot(1, 2, 1)
+            plt.imshow(crop[:,:,0],vmax=1000)
+            fig.add_subplot(1, 2, 2)
 #            plt.imshow(substrate_orig[x_0:x_0+len_a, y_0:y_0+len_b,0],vmax=1000)
-            plt.imshow(np.abs(sub0[minix:maxix,miniy:maxiy]),vmax=1000)
+            # plt.imshow(np.abs(sub0[minix:maxix,miniy:maxiy]),vmax=1000)
+            # plt.imshow(np.abs(sub0[y1:y3,x1:x3]),vmax=1000)
+            plt.imshow(np.abs(sub0),vmax=1000)
+            plt.ylim([maxix,minix])
+            plt.xlim([miniy,maxiy])
+            fig.suptitle('Сравнение кропа и преобразованной подложки')
             manager = plt.get_current_fig_manager()
             manager.resize(*manager.window.maxsize())
-            plt.show()
+            fig.savefig('pic/'+args.substrate_path[8:len(args.substrate_path)-4]+'_crop_{}_{}_0000.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
+            if ShowPlot:
+                plt.show()
