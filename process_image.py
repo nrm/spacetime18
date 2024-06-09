@@ -14,6 +14,10 @@ import rasterio
 from geotiff import GeoTiff
 
 ShowPlot = False
+bSaveLog = True
+log_file = None
+if bSaveLog:
+    log_file=open('log_file.txt','w',buffering=1)
 
 def cross_correlate_2d(x, h):
     h = np.fft.ifftshift(np.fft.ifftshift(h, axes=0), axes=1)
@@ -115,6 +119,9 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
 
 
 def make_derivative(data0,mult_x,mult_y,result_type='x'):
+#    indices1=np.round(np.arange(0,data0.shape[1]-mult_y,mult_y)).astype(int)
+#    indices2=np.round(np.arange(0,data0.shape[0]-mult_x,mult_x)).astype(int)
+#    data = data0[:,indices1][indices2]
     data = data0[::mult_x,::mult_y] * 1.0
     data_x = data * 1.0
     data_x[1:, :] = data[:-1, :]-data[1:, :]
@@ -172,7 +179,7 @@ def initial_search(diff_crop, substrate, mults,deriv_type):
         for mult_j in mults:
             parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type))
 
-    snrs=Parallel(n_jobs=8)(delayed(calc_for_mults)(*i) for i in parlist)
+    snrs=Parallel(n_jobs=16)(delayed(calc_for_mults)(*i) for i in parlist)
     ii=0
     for mult_i in mults:
         for mult_j in mults:
@@ -181,9 +188,11 @@ def initial_search(diff_crop, substrate, mults,deriv_type):
                 optm = (snrs[ii][1], snrs[ii][2])
                 best_snr = snr
             ii += 1
-    print("hello")
+    #print("hello")
     end = time.time()
     print('time:',end-start)
+    if bSaveLog:
+        log_file.write('initial_search best SNR:{}\n'.format(best_snr))
     return optm
 
 #def extrapolate_crop(crop,mx,my):
@@ -329,12 +338,17 @@ if __name__ == "__main__":
         plt.show()
     
     mults=[5,6,7,8,9,10]
-    # for i in range(0,5):
-    #     for j in range(0,4):
-    for i in range(0,8):
-        for j in range(0,5):
-            # crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
+    #mults=np.arange(5,10,0.4)
+    if bSaveLog:
+        log_file.write('Layout: {}\n'.format(args.substrate_path))
+    for i in range(1,5):
+        for j in range(0,4):
+    #for i in range(0,8):
+    #    for j in range(0,5):
+            crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            #crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
+            if bSaveLog:
+                log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
             crop_coords, substrate_coords, optm = process_crop(crop, crop_file_name, substrate, mults)
 
@@ -357,6 +371,10 @@ if __name__ == "__main__":
             coef_d = model.coef_[1][1]
             print ('a:{:.1f}, d:{:.1f}'.format(coef_a, coef_d))
             print(optm)
+            if bSaveLog:
+                log_file.write('a:{:.6f}, d:{:.6f}, opt:{},{}\n'.format(coef_a, coef_d, optm[0],optm[1]))
+                log_file.write('b:{:.6f}, c:{:.6f}\n\n'.format(coef_b, coef_c))
+
             # print(max(coef_a, coef_d) / min(coef_a, coef_d))
             # print(max(optm) / min(optm))
             # print(max(crop.shape[0:2]) / min(crop.shape[0:2]))
@@ -418,3 +436,6 @@ if __name__ == "__main__":
             fig.savefig('pic/'+args.substrate_path[8:len(args.substrate_path)-4]+'_crop_{}_{}_0000.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
             if ShowPlot:
                 plt.show()
+            #exit(0)
+    if bSaveLog:
+        log_file.close()
