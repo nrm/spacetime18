@@ -312,8 +312,10 @@ if __name__ == "__main__":
     substrate=np.median(substrate_orig,axis=2)
     
     substrate=(substrate-np.median(substrate))*1.0
-    
-    substrate=np.where(np.abs(substrate)>10000,0,substrate)
+    if (args.substrate_path == 'layouts/layout_2021-06-15.tif'):
+        substrate=np.where(np.abs(substrate)>3000,0,substrate)
+    else:
+        substrate=np.where(np.abs(substrate)>10000,0,substrate)
     # substrate=np.where(np.abs(substrate)>10000,10000,substrate)
     
     with rasterio.open(args.substrate_path) as src:
@@ -329,8 +331,8 @@ if __name__ == "__main__":
     mults=[5,6,7,8,9,10]
     # for i in range(0,5):
     #     for j in range(0,4):
-    for i in range(0,4):
-        for j in range(0,8):
+    for i in range(0,8):
+        for j in range(0,5):
             # crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
             crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             crop = tifffile.imread(crop_file_name)
@@ -362,7 +364,7 @@ if __name__ == "__main__":
             y1,x1 = int(x_0 + (coef_a*0+coef_b*0)*optm[0]),                         int(y_0 + (coef_c*0+coef_d*0)*optm[1])
             y2,x2 = int(x_0 + (coef_a*crop.shape[0]+coef_b*0)*optm[0]),             int(y_0 + (coef_c*crop.shape[0]+coef_d*0)*optm[1])
             y3,x3 = int(x_0 + (coef_a*crop.shape[0]+coef_b*crop.shape[1])*optm[0]), int(y_0 + (coef_c*crop.shape[0]+coef_d*crop.shape[1])*optm[1])
-            y4,x4 = int(x_0 + (coef_a*0+coef_b*crop.shape[1])*optm[0]),             int(y_0 + (coef_c*0+coef_d*crop.shape[0])*optm[1])
+            y4,x4 = int(x_0 + (coef_a*0+coef_b*crop.shape[1])*optm[0]),             int(y_0 + (coef_c*0+coef_d*crop.shape[1])*optm[1])
             
             print("******")
             print(x1,y1)

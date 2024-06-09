@@ -1,9 +1,12 @@
 import rasterio
 from rasterio.windows import Window
 from scipy.ndimage import zoom
+import random
 import os
 
 def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
+    tiles_x += 2
+    tiles_y += 2
     # Открываем изображение с помощью rasterio
     with rasterio.open(image_path) as src:
         img_width = src.width
@@ -24,8 +27,10 @@ def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
             return geo_x, geo_y
 
         # Разделяем изображение на прямоугольники
-        for y in range(tiles_y):
-            for x in range(tiles_x):
+        for x in range(1, tiles_x-1):
+            for y in range(1, tiles_y-1):
+                temp_x = x - 1
+                temp_y = y - 1
                 left = x * tile_width
                 upper = y * tile_height
                 right = left + tile_width
@@ -42,7 +47,7 @@ def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
                 tile = src.read(window=window)
 
                 # Изменяем размер изображения до требуемого размера плитки
-                downsized_tile = zoom(tile, (1, 1/10, 1/10))
+                downsized_tile = zoom(tile, (1, 1/(random.uniform(5,10)), 1/(random.uniform(5,10))))
 
                 # Выводим размеры нового тайла
                 print(f"Original tile shape: {tile.shape}")
@@ -55,16 +60,16 @@ def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
                 bottom_right = pixel_to_geo(right, lower, transform)
 
                 # Выводим геокоординаты плитки
-                file_coord.write('crop_{}_{}_0000\n'.format(y,x))
-                print(f"Tile ({x}, {y}):")
+                file_coord.write('crop_{}_{}_0000\n'.format(temp_x,temp_y))
+                print(f"Tile ({temp_x}, {temp_y}):")
                 print(f"  Top-left: {top_left}")
                 print(f"  Top-right: {top_right}")
                 print(f"  Bottom-left: {bottom_left}")
                 print(f"  Bottom-right: {bottom_right}")
-                file_coord.write(f"{[top_left[0]]} {top_left[1]}\n")
-                file_coord.write(f"{[bottom_left[0]]} {bottom_left[1]}\n")
-                file_coord.write(f"{[bottom_right[0]]} {bottom_right[1]}\n")
-                file_coord.write(f"{[top_right[0]]} {top_right[1]}\n")
+                file_coord.write(f"{top_left[0]} {top_left[1]}\n")
+                file_coord.write(f"{bottom_left[0]} {bottom_left[1]}\n")
+                file_coord.write(f"{bottom_right[0]} {bottom_right[1]}\n")
+                file_coord.write(f"{top_right[0]} {top_right[1]}\n")
                 file_coord.flush()
             
 
@@ -79,7 +84,7 @@ def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
                 })
 
                 # Сохраняем плитку с указанным сжатием
-                tile_path = os.path.join(output_dir, f"tile_{x}_{y}.tif")
+                tile_path = os.path.join(output_dir, f"tile_{temp_x}_{temp_y}.tif")
                 with rasterio.open(tile_path, 'w', **profile) as dst:
                     dst.write(downsized_tile)
                 print(f"Saved tile: {tile_path}")
