@@ -1,9 +1,30 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 import os
 from image_processing import process_image_file
 
 app = FastAPI()
+
+# Директория, в которой будут сканироваться подложки
+LAYOUTS_DIR = os.getenv("LAYOUTS_DIR", "/layouts")
+
+# Хранение подложек в памяти
+layouts = []
+active_layout = None
+
+class Layout(BaseModel):
+    name: str
+    description: str
+
+# Функция для сканирования директории и получения списка подложек
+def scan_layouts(directory: str):
+    tif_files = [f for f in os.listdir(directory) if f.endswith('.tif')]
+    layouts = [{"name": f, "description": f"Description of {f}"} for f in tif_files]
+    return layouts
+
+# Сканирование директории при запуске приложения
+layouts = scan_layouts(LAYOUTS_DIR)
 
 @app.post("/process_image/")
 async def process_image(file: UploadFile = File(...)):
@@ -35,3 +56,22 @@ async def download_fixed_image(filename: str):
 @app.get("/download_report/{filename}")
 async def download_report(filename: str):
     return FileResponse(filename)
+
+@app.get("/layouts/")
+async def get_layouts():
+    return layouts
+
+@app.put("/layouts/active/{layout_name}")
+async def set_active_layout(layout_name: str):
+    global active_layout
+    for layout in layouts:
+        if layout["name"] == layout_name:
+            active_layout = layout
+            return {"message": f"Layout '{layout_name}' is now active."}
+    raise HTTPException(status_code=404, detail="Layout not found")
+
+@app.get("/layouts/active/")
+async def get_active_layout():
+    if active_layout:
+        return active_layout
+    raise HTTPException(status_code=404, detail="No active layout set")
