@@ -93,8 +93,8 @@ def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
 image_path = "layouts/layout_2021-08-16.tif"
 output_dir = "2_40"
 
-tiles_x = 8  # Количество плиток по горизонтали
-tiles_y = 5  # Количество плиток по вертикали
+tiles_x = 5  # Количество плиток по горизонтали
+tiles_y = 4  # Количество плиток по вертикали
 file_coord = open('coordinates_newcrop.dat', 'w')
     
 split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw')
