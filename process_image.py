@@ -13,8 +13,8 @@ import rasterio
 
 from geotiff import GeoTiff
 
-#ShowPlot = True
 ShowPlot = False
+#ShowPlot = True
 bSaveLog = True
 log_file = None
 if bSaveLog:
@@ -45,7 +45,7 @@ def ccf_repro_images(diff_crop,cropped_substrate,ncut):
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             snr = np.max(ccf) / np.mean(ccf)
             print(i,j,x,y,snr)
-            if snr>10:
+            if snr>15:
                 crop_coords.append((i*cs,j*cs))
                 cropped_substrate_coords.append((xc*2+cs//2-x,yc*2+cs//2-y))
                 try:
@@ -92,7 +92,7 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             snr = np.max(ccf) / np.mean(ccf)
             #print(i, j, x, y, snr)
-            if snr > 15:
+            if snr > 10:
                 try:
                     res[xc * 2 + cs[0] // 2 - x:xc * 2 + cs[0] // 2 - x + cs[0],
                     yc * 2 + cs[1] // 2 - y:yc * 2 + cs[1] // 2 - y + cs[1]] = diff_crop[i * cs[0]:(i + 1) * cs[0],
@@ -118,6 +118,11 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
 
     return crop_coords, cropped_substrate_coords, cs
 
+def cloud_filter(data0):
+    data=data0*1
+    data[1:,:]=np.where(np.abs(data[:-1,:])>0,data[1:,:],0)
+    data[:,1:]=np.where(np.abs(data[:,:-1])>0,data[:,1:],0)
+    return data
 
 def make_derivative(data0,mult_x,mult_y,result_type='x'):
     if int(mult_x)!= mult_x or int(mult_y)!= mult_y:
@@ -125,18 +130,30 @@ def make_derivative(data0,mult_x,mult_y,result_type='x'):
         indices2=np.round(np.arange(0,data0.shape[0]-mult_x,mult_x)).astype(int)
         data = data0[:,indices1][indices2]
     else:
-        data = data0[::mult_x,::mult_y] * 1.0
+        data = data0[::int(mult_x),::int(mult_y)] * 1.0
     data_x = data * 1.0
-    data_x[1:, :] = data[:-1, :]-data[1:, :]
+
+
+#    data_x[1:, :] = data[:-1, :]-data[1:, :]
+    data_x[1:, :] = np.where(np.abs(data[:-1, :]*data[1:, :])>0,data[:-1, :]-data[1:, :],0)
     data_x[0, :]=np.zeros(data.shape[1])
+
+
     data_y = data * 1.0
-    data_y[:, 1:] = data[:, :-1]-data[:, 1:]
+#    data_y[:, 1:] = data[:, :-1]-data[:, 1:]
+    data_y[:, 1:] = np.where(np.abs(data[:, :-1]*data[:, 1:])>0,data[:, :-1]-data[:, 1:],0)
     data_y[:, 0]=np.zeros(data.shape[0])
+
+
     if result_type == 'x':
         return data_x
     if result_type == 'y':
         return data_y
     if result_type == 'complex':
+        #cdata=data_x + 1j*data_y
+        #cloud filter
+        #cdata=cloud_filter(cdata)
+        #return cdata
         return data_x + 1j*data_y
     if result_type == 'mcomplex':
         return np.abs(data_x + 1j*data_y)
@@ -151,21 +168,24 @@ def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr
 
 #    diff_substrate[0,:]=np.zeros(diff_substrate.shape[1])
 #    print(mult_j,mult_i)
+#     print(substrate.shape)
     diff_substrate=make_derivative(substrate,mult_i,mult_j,deriv_type)
-    
+    # print(diff_substrate.shape)
+    # exit(0)
+
     ix, iy = diff_substrate.shape
     if deriv_type=='complex':
         im1 = np.zeros(diff_substrate.shape,dtype=complex)
     else:
         im1 = np.zeros(diff_substrate.shape)
     i1mx, i1my = diff_crop.shape
-
-    im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my] = diff_crop
+    # print(im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my].shape,diff_crop.shape)
+    im1[(ix- i1mx) // 2:(ix- i1mx) // 2 + i1mx, (iy-i1my) // 2:(iy-i1my) // 2 + i1my] = diff_crop
     ccf = np.abs(cross_correlate_2d(im1, diff_substrate))  # !!!!!!
     x, y = np.unravel_index(ccf.argmax(), ccf.shape)
     snr = np.max(ccf) / np.mean(ccf)
     if return_type=='snr':
-        print((snr,mult_i,mult_j))
+        #print((snr,mult_i,mult_j))
         return (snr,mult_i,mult_j,x,y)
     else:
         return ccf
@@ -272,10 +292,23 @@ def process_crop(crop, crop_file_name, substrate, mults):
     cropped_substrate = diff_substrate[max(ix - x - delta,0):min(ix - x + i1mx + delta,ix), max(iy - y - delta,0):min(iy - y + i1my + delta, iy)]
     
     
-    delta = 300
-    cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
-    
-    new_mults=[np.arange(optm[0]-0.6,optm[0]+0.6,0.1),np.arange(optm[1]-0.6,optm[1]+0.6,0.1)]
+    delta = 200
+    # cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
+
+    kek1 = int(max((ix - x - i1mx//2) * optm[0] - delta, 0))
+    kek2 = int(max((iy - y - i1my//2) * optm[1] - delta, 0))
+    cropped_substrateHD = substrate[
+                          kek1:
+                          int(min((ix - x - i1mx//2)* optm[0] + i1mx* optm[0] + delta, ix * optm[0])),
+                          kek2:
+                          int(min((iy - y - i1my//2) * optm[1] + i1my * optm[1] + delta, iy * optm[1]))]
+    addmult=0.4
+    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
+#    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
+#    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
+
+    #new_mults=[[optm[0]],[optm[1]]]
+
     optm, snr_refined = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type)
     print('optm1:',optm, ' SNR_refined:',snr_refined)
        
@@ -313,7 +346,8 @@ def process_crop(crop, crop_file_name, substrate, mults):
 
     
 #    substrate_coords= [((tmp_cord[0] + max(ix - x - delta,0))*optm[0], (tmp_cord[1] + max(iy - y - delta,0))*optm[1]) for tmp_cord in cropped_substrate_coords]
-    substrate_coords= [((tmp_cord[0] + max(ix - x - delta,0)*optm[0]), (tmp_cord[1] + max(iy - y - delta,0)*optm[1])) for tmp_cord in cropped_substrate_coords]
+    substrate_coords= [((tmp_cord[0] + kek1),
+                        (tmp_cord[1] + kek2)) for tmp_cord in cropped_substrate_coords]
 
     return crop_coords, substrate_coords, optm
 
@@ -330,11 +364,11 @@ if __name__ == "__main__":
     
     substrate=np.median(substrate_orig,axis=2)
     
-    substrate=(substrate-np.median(substrate))*1.0
     if (args.substrate_path == 'layouts/layout_2021-06-15.tif'):
-        substrate=np.where(np.abs(substrate)>3000,0,substrate)
+        substrate=np.where(np.abs(substrate)>2000,0,substrate)
     else:
         substrate=np.where(np.abs(substrate)>10000,0,substrate)
+    #substrate=(substrate-np.median(substrate))*1.0
     # substrate=np.where(np.abs(substrate)>10000,10000,substrate)
     
     with rasterio.open(args.substrate_path) as src:
@@ -343,11 +377,12 @@ if __name__ == "__main__":
     print('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat')
             
     
-#    if ShowPlot:
-#        plt.imshow(substrate)
-#        plt.show()
+    if ShowPlot:
+        plt.imshow(substrate)
+        plt.show()
     
-    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
+#    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
+    mults=[np.arange(4.5,10,0.5),np.arange(4.5,10,0.5)]
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
@@ -355,8 +390,8 @@ if __name__ == "__main__":
         for j in range(0,4):
     #for i in range(0,8):
     #    for j in range(0,5):
-            crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            #crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
+            #crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
@@ -389,10 +424,10 @@ if __name__ == "__main__":
             # print(max(optm) / min(optm))
             # print(max(crop.shape[0:2]) / min(crop.shape[0:2]))
             
-            y1,x1 = int(x_0 + (coef_a*0+coef_b*0)*optm[0]),                         int(y_0 + (coef_c*0+coef_d*0)*optm[1])
-            y2,x2 = int(x_0 + (coef_a*crop.shape[0]+coef_b*0)*optm[0]),             int(y_0 + (coef_c*crop.shape[0]+coef_d*0)*optm[1])
-            y3,x3 = int(x_0 + (coef_a*crop.shape[0]+coef_b*crop.shape[1])*optm[0]), int(y_0 + (coef_c*crop.shape[0]+coef_d*crop.shape[1])*optm[1])
-            y4,x4 = int(x_0 + (coef_a*0+coef_b*crop.shape[1])*optm[0]),             int(y_0 + (coef_c*0+coef_d*crop.shape[1])*optm[1])
+            y1,x1 = (x_0 + (coef_a*0+coef_b*0)*optm[0]),                         (y_0 + (coef_c*0+coef_d*0)*optm[1])
+            y2,x2 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*0)*optm[0]),             (y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*0)*optm[1])
+            y3,x3 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*(crop.shape[1] - 1))*optm[0]), int(y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*(crop.shape[1] - 1))*optm[1])
+            y4,x4 = (x_0 + (coef_a*0+coef_b*(crop.shape[1] - 1))*optm[0]),             (y_0 + (coef_c*0+coef_d*(crop.shape[1] - 1))*optm[1])
             
             print("******")
             print(x1,y1)
@@ -441,8 +476,8 @@ if __name__ == "__main__":
             plt.ylim([maxix,minix])
             plt.xlim([miniy,maxiy])
             fig.suptitle('Сравнение кропа и преобразованной подложки')
-            manager = plt.get_current_fig_manager()
-            manager.resize(*manager.window.maxsize())
+            #manager = plt.get_current_fig_manager()
+            #manager.resize(*manager.window.maxsize())
             fig.savefig('pic/'+args.substrate_path[8:len(args.substrate_path)-4]+'_crop_{}_{}_0000.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
             if ShowPlot:
                 plt.show()
