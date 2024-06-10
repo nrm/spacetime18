@@ -1,6 +1,8 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-coords_layout = open("coordinates_layout_2021-08-16_.dat", 'r')
+#coords_layout = open("coordinates_layout_2021-08-16_.dat", 'r')
+coords_layout = open("coordinates_layout_2022-03-17_.dat", 'r')
 coords_newcrop = open("coordinates_newcrop.dat", 'r')
 
 x1_o = {}
@@ -65,16 +67,31 @@ for name, _o_c in o_c.items():
     print("______________")
     print(name)
     x1y1 = np.sqrt(_o_c[0][0]**2 + _o_c[0][1]**2)
-    print("x1, y1", x1y1)
-    x2y2 = np.sqrt(_o_c[1][0]**2 + _o_c[1][1]**2)
-    print("x2, y2", x2y2)
-    x3y3 = np.sqrt(_o_c[2][0]**2 + _o_c[2][1]**2)
-    print("x3, y3", x3y3)
-    x4y4 = np.sqrt(_o_c[3][0]**2 + _o_c[3][1]**2)
-    print("x4, y4", x4y4)
-    mean_o_c.append((x1y1 + x2y2 + x3y3 + x4y4)/4)
-    print("mean", mean_o_c[-1])
+    print("x1, y1", x1y1,_o_c[0][0], _o_c[0][1])
+    plt.plot([_o_c[0][0]], [_o_c[0][1]],'o',color='red')
 
+    x2y2 = np.sqrt(_o_c[1][0]**2 + _o_c[1][1]**2)
+    print("x2, y2", x2y2,_o_c[1][0], _o_c[1][1])
+    plt.plot([_o_c[1][0]], [_o_c[1][1]],'o',color='blue')
+
+
+    x3y3 = np.sqrt(_o_c[2][0]**2 + _o_c[2][1]**2)
+    print("x3, y3", x3y3,_o_c[2][0], _o_c[2][1])
+    plt.plot([_o_c[2][0]], [_o_c[2][1]],'o',color='black')
+
+
+    x4y4 = np.sqrt(_o_c[3][0]**2 + _o_c[3][1]**2)
+    print("x4, y4", x4y4,_o_c[3][0], _o_c[3][1])
+    mean_o_c.append((x1y1 + x2y2 + x3y3 + x4y4)/4)
+    plt.plot([_o_c[3][0]], [_o_c[3][1]],'o',color='orange')
+
+    print("mean", mean_o_c[-1])
+plt.plot([],[],'o',color='red',label='x1y1')
+plt.plot([],[],'o',color='blue',label='x2y2')
+plt.plot([],[],'o',color='black',label='x3y3')
+plt.plot([],[],'o',color='orange',label='x4y4')
+plt.legend()
+plt.show()
 list_o_c = list(o_c.keys())
 
 print("************")
