@@ -1,8 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
+
 
 #coords_layout = open("coordinates_layout_2021-08-16_.dat", 'r')
-coords_layout = open("coordinates_layout_2022-03-17_.dat", 'r')
+
+parser = argparse.ArgumentParser(description="Get name of substrate")
+parser.add_argument('substrate_path', type=str, help ='Path to the substrate file')
+args = parser.parse_args()
+coordinates_layout_path = args.substrate_path
+#print(coordinates_layout_path)
+#exit(0)
+coords_layout = open(coordinates_layout_path, 'r')
+
 coords_newcrop = open("coordinates_newcrop.dat", 'r')
 
 x1_o = {}
