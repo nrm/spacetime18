@@ -359,6 +359,7 @@ def scale_image(image, multx, multy):
 
 def process_crop(crop, crop_file_name, substrate, mults):
     deriv_type='complex'
+#    deriv_type='none'
     med_crop = np.median(crop,axis=2)
 
     #diff_crop = diff_crop - np.mean(diff_crop) * 1.0
@@ -524,8 +525,8 @@ if __name__ == "__main__":
             
             y1,x1 = (x_0 + (coef_a*0+coef_b*0)*optm[0]),                         (y_0 + (coef_c*0+coef_d*0)*optm[1])
             y2,x2 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*0)*optm[0]),             (y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*0)*optm[1])
-            y3,x3 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*(crop.shape[1] - 1))*optm[0]), int(y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*(crop.shape[1] - 1))*optm[1])
-            y4,x4 = (x_0 + (coef_a*0+coef_b*(crop.shape[1] - 1))*optm[0]),             (y_0 + (coef_c*0+coef_d*(crop.shape[1] - 1))*optm[1])
+            y3,x3 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*(crop.shape[1] - 1))*optm[0]), (y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*(crop.shape[1] - 1))*optm[1])
+            y4,x4 = (x_0 + (coef_a*0+coef_b*(crop.shape[1] - 1))*optm[0]) ,             (y_0 + (coef_c*0+coef_d*(crop.shape[1] - 1))*optm[1])
             
             print("******")
             print(x1,y1)
@@ -559,7 +560,9 @@ if __name__ == "__main__":
 
             file_coord.write('crop_{}_{}_0000\n'.format(i,j))
             for pixel in pixels:
-                spatial_coordinate = transform * (pixel[0], pixel[1])
+                #spatial_coordinate = transform * (pixel[0], pixel[1])
+                spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset='center')
+
                 file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
                 file_coord.flush()
             
