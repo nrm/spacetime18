@@ -225,7 +225,8 @@ def make_derivative(data0,mult_x,mult_y,result_type='x'):
         return data_x + 1j*data_y
     if result_type == 'mcomplex':
         return np.abs(data_x + 1j*data_y)
-
+    if result_type == 'none':
+        return data - np.mean(data)
     return 'unknown data type'
 
 
