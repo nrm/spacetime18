@@ -107,7 +107,7 @@ def ccf_repro_images(diff_crop,cropped_substrate,ncut):
             mcrop[xc:xc+cs,yc:yc+cs]=diff_crop[i*cs:(i+1)*cs,j*cs:(j+1)*cs]
             
             ccf = np.abs(cross_correlate_2d(mcrop, cropped_substrate))  # !!!!!!
-            
+
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             snr = np.max(ccf) / np.mean(ccf)
             print(i,j,x,y,snr)
@@ -216,6 +216,8 @@ def make_derivative(data0,mult_x,mult_y,result_type='x'):
     if result_type == 'y':
         return data_y
     if result_type == 'complex':
+        #cdata = np.zeros((2**(int(np.log2(data.shape[0]))+1),2**(int(np.log2(data.shape[1]))+1)),dtype=complex)
+        #cdata[:data.shape[0],:data.shape[1]]=data_x + 1j*data_y
         #cdata=data_x + 1j*data_y
         #cloud filter
         #cdata=cloud_filter(cdata)
@@ -384,7 +386,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
     cropped_substrate = diff_substrate[max(ix - x - delta,0):min(ix - x + i1mx + delta,ix), max(iy - y - delta,0):min(iy - y + i1my + delta, iy)]
     
     
-    delta = 400
+    delta = 100
     # cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
 
     kek1 = int(max((ix - x - i1mx//2) * optm[0] - delta, 0))
@@ -394,9 +396,9 @@ def process_crop(crop, crop_file_name, substrate, mults):
                           int(min((ix - x - i1mx//2)* optm[0] + i1mx* optm[0] + delta, ix * optm[0])),
                           kek2:
                           int(min((iy - y - i1my//2) * optm[1] + i1my * optm[1] + delta, iy * optm[1]))]
-    angls = np.arange(-5,5,0.5)
-    opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
-    exit(0)
+    #angls = np.arange(-5,5,0.5)
+    #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
+    #exit(0)
 
     addmult=0.4
     new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
@@ -485,8 +487,8 @@ if __name__ == "__main__":
         for j in range(0,4):
     #for i in range(0,8):
     #    for j in range(0,5):
-            crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            #crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
+            #crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
@@ -576,6 +578,6 @@ if __name__ == "__main__":
             fig.savefig('pic/'+args.substrate_path[8:len(args.substrate_path)-4]+'_crop_{}_{}_0000.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
             if ShowPlot:
                 plt.show()
-            exit(0)
+            #exit(0)
     if bSaveLog:
         log_file.close()
