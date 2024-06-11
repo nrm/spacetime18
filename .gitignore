@@ -4,3 +4,6 @@ layouts
 .ipynb_checkpoints
 *.dat
 pic
+venv/
+.vscode/
+*pdf
