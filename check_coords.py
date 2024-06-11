@@ -7,13 +7,15 @@ import argparse
 
 parser = argparse.ArgumentParser(description="Get name of substrate")
 parser.add_argument('substrate_path', type=str, help ='Path to the substrate file')
+parser.add_argument('coordinate_path', type=str, help ='Path to the coordinate file')
 args = parser.parse_args()
 coordinates_layout_path = args.substrate_path
+coordinates_newcrop_path = args.coordinate_path
 #print(coordinates_layout_path)
 #exit(0)
 coords_layout = open(coordinates_layout_path, 'r')
 
-coords_newcrop = open("coordinates_newcrop.dat", 'r')
+coords_newcrop = open(coordinates_newcrop_path, 'r')
 
 x1_o = {}
 x1_c = {}

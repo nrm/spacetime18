@@ -194,13 +194,51 @@ def cloud_filter(data0):
     data[:,1:]=np.where(np.abs(data[:,:-1])>0,data[:,1:],0)
     return data
 
+def smooth_(y, box_pts):
+    box = np.ones(box_pts)
+    box = box/np.sum(box)
+    y_smooth = scipy.signal.convolve2d(y, box, mode='same')
+    #y_smooth = np.convolve2d(y, box, mode='same')
+    return y_smooth
+
+def smooth(x, N, M):
+    a = np.cumsum(x,axis=0) 
+    a = (a[N:,:] - a[:-N,:]) / float(N)
+    a = np.cumsum(a,axis=1) 
+    a = (a[:,M:] - a[:,:-M]) / float(M)
+    return a
+
+def affine_transform(matrix, params):
+    rows, cols = matrix.shape
+    # Define the affine transformation matrix
+    M = np.array([
+        [params[0], params[1], params[2]],
+        [params[3], params[4], params[5]]
+    ])
+
+    # Apply the affine transformation
+    transformed = cv2.warpAffine(matrix, M, (cols, rows))
+    return transformed
+
+def downscaling(F, multx, multy):
+    params = [1./multx, 0, 0, 0, 1./multy, 0]
+    return affine_transform(F, params) #[:,:int(F.shape[1]/multx)][:int(F.shape[0]/multy)]
+
 def make_derivative(data0,mult_x,mult_y,result_type='x'):
-    if int(mult_x)!= mult_x or int(mult_y)!= mult_y:
-        indices1=np.round(np.arange(0,data0.shape[1]-mult_y,mult_y)).astype(int)
-        indices2=np.round(np.arange(0,data0.shape[0]-mult_x,mult_x)).astype(int)
-        data = data0[:,indices1][indices2]
-    else:
-        data = data0[::int(mult_x),::int(mult_y)] * 1.0
+#    if(mult_x*mult_y!=1):
+#        data0=smooth(data00,int(mult_x),int(mult_y))
+#    else:
+#        data0=data00
+    if True:
+        if int(mult_x)!= mult_x or int(mult_y)!= mult_y:
+            indices1=np.round(np.arange(0,data0.shape[1]-mult_y,mult_y)).astype(int)
+            indices2=np.round(np.arange(0,data0.shape[0]-mult_x,mult_x)).astype(int)
+            data = data0[:,indices1][indices2]
+        else:
+            data = data0[::int(mult_x),::int(mult_y)] * 1.0
+
+#    data = downscaling(data0,mult_y,mult_x)
+    
     data_x = data * 1.0
 
 
@@ -371,13 +409,18 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    optm,best_snr = initial_search(diff_crop, substrate, mults, deriv_type)
+    ISmult=4
+    med_crop_sm = smooth(med_crop,ISmult,ISmult)
+    diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
+    substrate_sm = smooth(substrate,ISmult*6,ISmult*6)
+    substrate_sm = substrate_sm[::ISmult,::ISmult]
+    optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type)
     #exit(0)
 #    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
 
     print(crop_file_name,' SNR:{:.1f}'.format(best_snr),' mults:',optm)
-    x, y = optm[2],optm[3]
-    
+    x, y = optm[2]*ISmult,optm[3]*ISmult
+    #exit(0)
     diff_substrate = make_derivative(substrate,optm[0], optm[1],deriv_type)
     
     ix, iy = diff_substrate.shape
@@ -392,7 +435,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
     cropped_substrate = diff_substrate[max(ix - x - delta,0):min(ix - x + i1mx + delta,ix), max(iy - y - delta,0):min(iy - y + i1my + delta, iy)]
     
     
-    delta = 100
+    delta = 200
     # cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
 
     kek1 = int(max((ix - x - i1mx//2) * optm[0] - delta, 0))
@@ -406,8 +449,8 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
     #exit(0)
 
-    addmult=0.6
-    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
+    addmult=0.15
+    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.02),np.arange(optm[1]-addmult,optm[1]+addmult,0.02)]
 #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
 #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
 
@@ -486,16 +529,16 @@ if __name__ == "__main__":
         plt.show()
     
 #    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
-    mults=[np.arange(5,10,0.5),np.arange(5,10,0.5)]
+    mults=np.array([np.arange(5,10,0.08),np.arange(5,10,0.08)])
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
-    for i in range(2,5):
-        for j in range(3,4):
+    for i in range(0,5):
+        for j in range(0,4):
     #for i in range(0,8):
     #    for j in range(0,5):
-            #crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
+            crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            #crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
