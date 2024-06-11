@@ -71,14 +71,21 @@ def split_tiff(image_path, output_dir, tiles_x, tiles_y, compression='lzw'):
                 file_coord.write(f"{bottom_right[0]} {bottom_right[1]}\n")
                 file_coord.write(f"{top_right[0]} {top_right[1]}\n")
                 file_coord.flush()
-            
+
+                tile_transform = rasterio.transform.from_bounds(top_left[0], bottom_left[1], top_right[0], top_right[1],
+                                                                downsized_tile.shape[2], downsized_tile.shape[1])
+                #profile = src.profile
+                #profile.update(
+                #    {'height': downsized_tile.shape[1], 'width': downsized_tile.shape[2], 'transform': tile_transform,
+                #     'compress': compression, 'count': num_bands})
 
                 # Создаем профиль для новой плитки
                 profile = src.profile
                 profile.update({
                     'height': downsized_tile.shape[1],
                     'width': downsized_tile.shape[2],
-                    'transform': src.transform * rasterio.Affine.scale(tile_width / tile.shape[2], tile_height / tile.shape[1]),
+                    'transform':tile_transform,
+#                    'transform': src.transform * rasterio.Affine.translation(left,upper) * rasterio.Affine.scale((tile_width / tile.shape[2]), (tile_height / tile.shape[1])),
                     'compress': compression,
                     'count': num_bands  # Указываем количество каналов цвета
                 })
