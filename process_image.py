@@ -20,6 +20,72 @@ log_file = None
 if bSaveLog:
     log_file=open('log_file.txt','w',buffering=1)
 
+def transform_and_fill_new(F, mult_x=5.,mult_y=9,angle=15):
+    tmp=F[0][0]
+#     for _ in range(len(F.shape)-1):
+#         tmp = tmp[0]
+    
+    a = 0
+    if mult_x:
+        a = 1/mult_x
+    d = 0
+    if mult_y:
+        d = 1/mult_y
+    
+    M = np.array([
+        [a, 0.],
+        [0., d]
+    ])
+
+    phi = angle * np.pi / 180.
+    Povorot = np.array([
+        [ np.cos(phi), np.sin(phi)],
+        [-np.sin(phi), np.cos(phi)]
+    ])
+
+    itog = np.matmul(Povorot,M)
+    
+    a = itog[0][0]
+    b = itog[0][1]
+    c = itog[1][0]
+    d = itog[1][1]
+    
+    y_range, x_range = F.shape[0:2]
+
+    G = np.zeros(
+        (max(min(int(F.shape[1]*c+F.shape[0]*d), F.shape[0]),0),
+         max(min(int(F.shape[1]*a+F.shape[0]*b), F.shape[1]),0))
+        , dtype=type(tmp)
+    )
+    
+    u_range, v_range = G.shape
+    
+    det_A = a*d-b*c
+        
+    rows, cols = F.shape[0:2]
+    
+    # Создаем сетку индексов
+    u_indices, v_indices = np.meshgrid(np.arange(u_range), np.arange(v_range), indexing='ij')
+    
+    # Вычисляем новые индексы
+    tmp_new_u_indices = np.round(( a * u_indices - c * v_indices) / det_A).astype(int)
+    tmp_new_v_indices = np.round((-b * u_indices + d * v_indices) / det_A).astype(int)
+    
+    # Ограничиваем индексы, чтобы они не выходили за границы массива F
+    new_u_indices = np.clip(tmp_new_u_indices, 0, rows - 1)
+    new_v_indices = np.clip(tmp_new_v_indices, 0, cols - 1)
+    
+    # Формируем выходной массив G
+#     G[u_indices, v_indices] = F[new_u_indices, new_v_indices, 0]
+    G[u_indices, v_indices] = F[new_u_indices, new_v_indices]
+        
+    G[np.where(tmp_new_u_indices < 0)] = 0
+    G[np.where(tmp_new_v_indices < 0)] = 0
+    G[np.where(tmp_new_u_indices >= rows)] = 0
+    G[np.where(tmp_new_v_indices >= cols)] = 0
+    
+    return G
+
 def cross_correlate_2d(x, h):
     h = np.fft.ifftshift(np.fft.ifftshift(h, axes=0), axes=1)
     return np.fft.ifft2(np.fft.fft2(x) * np.conj(np.fft.fft2(h)))
@@ -190,7 +256,6 @@ def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr
     else:
         return ccf
 
-
 def initial_search(diff_crop, substrate, mults,deriv_type):
     #best_ccf=np.zeros(diff_crop.shape)
     import time
@@ -203,7 +268,7 @@ def initial_search(diff_crop, substrate, mults,deriv_type):
         for mult_j in mults[1]:
             parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type))
 
-    snrs=Parallel(n_jobs=16)(delayed(calc_for_mults)(*i) for i in parlist)
+    snrs=Parallel(n_jobs=4)(delayed(calc_for_mults)(*i) for i in parlist)
     ii=0
     for mult_i in mults[0]:
         for mult_j in mults[1]:
@@ -217,6 +282,33 @@ def initial_search(diff_crop, substrate, mults,deriv_type):
     print('time:',end-start)
     if bSaveLog:
         log_file.write('initial_search best SNR:{}\n'.format(best_snr))
+    return optm,best_snr
+
+def angle_test_fullHD(diff_crop, substrate, angls, mult_i,mult_j, deriv_type):
+    #best_ccf=np.zeros(diff_crop.shape)
+    import time
+
+    start = time.time()
+    best_snr=0
+    optm=(0,0)
+    parlist=[]
+    for angl in angls:
+        parlist.append((diff_crop,transform_and_fill_new(substrate, 1,1,angl),mult_i,mult_j,deriv_type))
+
+    snrs=Parallel(n_jobs=1)(delayed(calc_for_mults)(*i) for i in parlist)
+    ii=0
+    for angl in angls:
+        snr=snrs[ii][0]
+        print("angl: " + str(angl), "SNR: " + str(snr))
+        if snr > best_snr:
+            optm = (snrs[ii][1], snrs[ii][2],snrs[ii][3],snrs[ii][4])
+            best_snr = snr
+        ii += 1
+    #print("hello")
+    end = time.time()
+    print('time:',end-start)
+    if bSaveLog:
+        log_file.write('angle_test_fullHD best SNR:{}\n'.format(best_snr))
     return optm,best_snr
 
 #def extrapolate_crop(crop,mx,my):
@@ -292,7 +384,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
     cropped_substrate = diff_substrate[max(ix - x - delta,0):min(ix - x + i1mx + delta,ix), max(iy - y - delta,0):min(iy - y + i1my + delta, iy)]
     
     
-    delta = 200
+    delta = 400
     # cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
 
     kek1 = int(max((ix - x - i1mx//2) * optm[0] - delta, 0))
@@ -302,6 +394,10 @@ def process_crop(crop, crop_file_name, substrate, mults):
                           int(min((ix - x - i1mx//2)* optm[0] + i1mx* optm[0] + delta, ix * optm[0])),
                           kek2:
                           int(min((iy - y - i1my//2) * optm[1] + i1my * optm[1] + delta, iy * optm[1]))]
+    angls = np.arange(-5,5,0.5)
+    opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
+    exit(0)
+
     addmult=0.4
     new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
 #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
@@ -337,8 +433,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
         plt.imshow(np.abs(cropped_substrateHD),vmax=500)
         fig.suptitle('Метод производной для подложки full HD')
         plt.show()
-
-
+    
 #    crop_coords, cropped_substrate_coords, cs = ccf_repro_images(diff_crop, cropped_substrate, ncut=4)
     crop_coords, cropped_substrate_coords, cs = ccf_repro_images_fullHD(crop_HD, cropped_substrateHD, ncut=4)
 
@@ -390,8 +485,8 @@ if __name__ == "__main__":
         for j in range(0,4):
     #for i in range(0,8):
     #    for j in range(0,5):
-            #crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
+            crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            #crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
@@ -481,6 +576,6 @@ if __name__ == "__main__":
             fig.savefig('pic/'+args.substrate_path[8:len(args.substrate_path)-4]+'_crop_{}_{}_0000.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
             if ShowPlot:
                 plt.show()
-            #exit(0)
+            exit(0)
     if bSaveLog:
         log_file.close()
