@@ -141,6 +141,7 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
 
     crop_coords = []
     cropped_substrate_coords = []
+    #print('cs:',cs)
     for i in range(ncut):
         for j in range(ncut):
             mcrop = mcrop * 0
@@ -158,16 +159,19 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             snr = np.max(ccf) / np.mean(ccf)
             #print(i, j, x, y, snr)
-            if snr > 10:
-                try:
-                    res[xc * 2 + cs[0] // 2 - x:xc * 2 + cs[0] // 2 - x + cs[0],
-                    yc * 2 + cs[1] // 2 - y:yc * 2 + cs[1] // 2 - y + cs[1]] = diff_crop[i * cs[0]:(i + 1) * cs[0],
-                                                                      j * cs[1]:(j + 1) * cs[1]]
-                    crop_coords.append((i * cs[0], j * cs[1]))
-                    cropped_substrate_coords.append((xc * 2 + cs[0] // 2 - x, yc * 2 + cs[1] // 2 - y))
-
-                except:
-                    continue
+#            if snr > 10:
+            if (snr > 8) and \
+                np.abs(x + i * cs[0] - cropped_substrate.shape[0] + cs[0]//2)<cs[0] and \
+                np.abs(y + j * cs[1] - cropped_substrate.shape[1] + cs[1]//2)<cs[1]:
+                    try:
+                        res[xc * 2 + cs[0] // 2 - x:xc * 2 + cs[0] // 2 - x + cs[0],
+                        yc * 2 + cs[1] // 2 - y:yc * 2 + cs[1] // 2 - y + cs[1]] = diff_crop[i * cs[0]:(i + 1) * cs[0],
+                                                                        j * cs[1]:(j + 1) * cs[1]]
+                        crop_coords.append((i * cs[0], j * cs[1]))
+                        cropped_substrate_coords.append((xc * 2 + cs[0] // 2 - x, yc * 2 + cs[1] // 2 - y))
+                        #print(snr,x + i * cs[0] - cropped_substrate.shape[0] + cs[0]//2, y + j * cs[1] - cropped_substrate.shape[1] + cs[1]//2)
+                    except:
+                        continue
 
     #plt.hist(np.abs(diff_crop).flatten(),bins=1000)
     #plt.show()
@@ -200,14 +204,14 @@ def make_derivative(data0,mult_x,mult_y,result_type='x'):
     data_x = data * 1.0
 
 
-#    data_x[1:, :] = data[:-1, :]-data[1:, :]
-    data_x[1:, :] = np.where(np.abs(data[:-1, :]*data[1:, :])>0,data[:-1, :]-data[1:, :],0)
+    data_x[1:, :] = data[:-1, :]-data[1:, :]
+#    data_x[1:, :] = np.where(np.abs(data[:-1, :]*data[1:, :])>0,data[:-1, :]-data[1:, :],0)
     data_x[0, :]=np.zeros(data.shape[1])
 
 
     data_y = data * 1.0
-#    data_y[:, 1:] = data[:, :-1]-data[:, 1:]
-    data_y[:, 1:] = np.where(np.abs(data[:, :-1]*data[:, 1:])>0,data[:, :-1]-data[:, 1:],0)
+    data_y[:, 1:] = data[:, :-1]-data[:, 1:]
+#    data_y[:, 1:] = np.where(np.abs(data[:, :-1]*data[:, 1:])>0,data[:, :-1]-data[:, 1:],0)
     data_y[:, 0]=np.zeros(data.shape[0])
 
 
@@ -218,11 +222,11 @@ def make_derivative(data0,mult_x,mult_y,result_type='x'):
     if result_type == 'complex':
         #cdata = np.zeros((2**(int(np.log2(data.shape[0]))+1),2**(int(np.log2(data.shape[1]))+1)),dtype=complex)
         #cdata[:data.shape[0],:data.shape[1]]=data_x + 1j*data_y
-        #cdata=data_x + 1j*data_y
+        cdata=data_x + 1j*data_y
         #cloud filter
         #cdata=cloud_filter(cdata)
-        #return cdata
-        return data_x + 1j*data_y
+        return cdata - np.mean(cdata)
+        #return data_x + 1j*data_y
     if result_type == 'mcomplex':
         return np.abs(data_x + 1j*data_y)
     if result_type == 'none':
@@ -402,7 +406,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
     #exit(0)
 
-    addmult=0.4
+    addmult=0.6
     new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
 #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
 #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
@@ -413,6 +417,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
     print('optm1:',optm, ' SNR_refined:',snr_refined)
        
     cropped_substrateHD = make_derivative(cropped_substrateHD,1,1,deriv_type)
+    cropped_substrate = make_derivative(cropped_substrateHD,optm[0], optm[1],deriv_type)
     
     crop_HD = scale_image(med_crop,optm[1],optm[0])
     crop_HD = make_derivative(crop_HD,1,1,deriv_type)
@@ -422,7 +427,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
         fig.add_subplot(1, 2, 1)
         plt.imshow(np.abs(diff_crop))
         fig.add_subplot(1, 2, 2)
-        plt.imshow(np.abs(cropped_substrate))
+        plt.imshow(np.abs(cropped_substrate),vmax=5*np.median(np.abs(cropped_substrate)))
         fig.suptitle('Метод производной для загрубленной подложки')
         plt.show()
 
@@ -481,12 +486,12 @@ if __name__ == "__main__":
         plt.show()
     
 #    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
-    mults=[np.arange(4.5,10,0.5),np.arange(4.5,10,0.5)]
+    mults=[np.arange(5,10,0.5),np.arange(5,10,0.5)]
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
-    for i in range(0,5):
-        for j in range(0,4):
+    for i in range(2,5):
+        for j in range(3,4):
     #for i in range(0,8):
     #    for j in range(0,5):
             #crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
@@ -505,14 +510,26 @@ if __name__ == "__main__":
             x = np.array(substrate_coords)[:,0]# - x_0
             y = np.array(substrate_coords)[:,1]# - y_0
 #            print(x_0,y_0)
-            model = LinearRegression().fit(np.transpose(np.array([x_old,y_old])), np.transpose(np.array([x,y])))
-            x_0,y_0 = model.intercept_
+            X = np.transpose(np.array([x_old,y_old]))
+            Y = np.transpose(np.array([x,y]))
+            weights = np.ones(Y.shape[0])
+            for iIter in range(10):
+                model = LinearRegression().fit(X, Y,sample_weight=weights)
+                x_0,y_0 = model.intercept_
+                Y1 = model.predict(X)
+                #print('max o-c:',np.max(np.sum(np.abs(Y1-Y),axis=1)*weights))
+                weights = 1/(1+np.sum(np.abs(Y1-Y),axis=1)**2)
+                #plt.plot(np.sum(np.abs(Y1-Y),axis=1),'.-')
+                #plt.show()
+
+
             print(model.intercept_)
             print('coef:', model.coef_)
             coef_a = model.coef_[0][0]
             coef_b = model.coef_[0][1]
             coef_c = model.coef_[1][0]
             coef_d = model.coef_[1][1]
+
             print ('a:{:.1f}, d:{:.1f}'.format(coef_a, coef_d))
             print(optm)
             if bSaveLog:
