@@ -461,12 +461,16 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmult=4
+    ISmult=3
     med_crop_sm = smooth(med_crop,ISmult,ISmult)
     diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
     substrate_sm = smooth(substrate,ISmult*6,ISmult*6)
     substrate_sm = substrate_sm[::ISmult,::ISmult]
-    optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type)
+    try:
+        optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type)
+    except:
+        print('Initial search failed')
+        return [],[],[]
     #exit(0)
 #    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
 
@@ -521,8 +525,12 @@ def process_crop(crop, crop_file_name, substrate, mults):
 #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
 
     #new_mults=[[optm[0]],[optm[1]]]
+    try:
+        optm, snr_refined = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type)
+    except:
+        print('refined search failed')
+        return [],[],[]
 
-    optm, snr_refined = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type)
     print('optm1:',optm, ' SNR_refined:',snr_refined)
        
     cropped_substrateHD = make_derivative(cropped_substrateHD,1,1,deriv_type)
@@ -609,6 +617,8 @@ if __name__ == "__main__":
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
             crop_coords, substrate_coords, optm = process_crop(crop, crop_file_name, substrate, mults)
+            if(len(crop_coords)<3):
+                continue
 
             # print(crop_coords)
             # print(substrate_coords)
