@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression
 from joblib import Parallel, delayed
 import argparse
 import rasterio
+import os
 
 
 from geotiff import GeoTiff
@@ -617,14 +618,45 @@ if __name__ == "__main__":
                     maxiy = max(maxiy, y)
                 
             pixels = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
-
+            
+            coords = []
+            
             file_coord.write('crop_{}_{}_0000\n'.format(i,j))
             for pixel in pixels:
                 #spatial_coordinate = transform * (pixel[0], pixel[1])
                 spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset='center')
+                
+                coords.append(spatial_coordinate)
+                print("spatial_coordinate:", spatial_coordinate)
 
                 file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
                 file_coord.flush()
+            
+            new_transform = rasterio.transform.from_bounds(
+            west=coords[0][0],
+            south=coords[1][1],
+            east=coords[3][0],
+            north=coords[3][1],
+            width=crop.shape[1],
+            height=crop.shape[0]
+            )
+            
+            src = rasterio.open(crop_file_name)
+            data = src.read()
+            num_bands = src.count
+            profile = src.profile
+            profile.update({
+            'crs': 'EPSG:32637',
+            'transform': new_transform,
+            'count': num_bands,
+            'width':crop.shape[1],
+            'height':crop.shape[0]
+            })
+            
+            tile_path = os.path.join('1_20_geotiff', crop_file_name[5:])
+            with rasterio.open(tile_path, 'w', **profile) as dst:
+                dst.write(data)
+                print(f"Saved tile: {tile_path}")
             
             fig = plt.figure(figsize=(10, 8))
             fig.add_subplot(1, 2, 1)
