@@ -286,7 +286,7 @@ def calc_for_mults_new(diff_crop0,substrate,mult_i,mult_j,deriv_type,return_type
 #    diff_substrate[0,:]=np.zeros(diff_substrate.shape[1])
 #    print(mult_j,mult_i)
 #     print(substrate.shape)
-    angles=np.arange(-2,2,0.5)
+    angles=np.arange(-1.5,1.5,0.2)
     #angles=[0]
     result=(0,0,0,0,0)
     diff_substrate=make_derivative(substrate,mult_i,mult_j,deriv_type)
@@ -524,8 +524,8 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
     #exit(0)
 
-    addmult=0.4
-    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
+    addmult=0.1
+    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.01),np.arange(optm[1]-addmult,optm[1]+addmult,0.01)]
 #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
 #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
 
@@ -537,6 +537,8 @@ def process_crop(crop, crop_file_name, substrate, mults):
         return [],[],[]
 
     print('optm1:',optm, ' SNR_refined:',snr_refined)
+    if snr_refined < best_snr:
+        return [],[],[]
        
     cropped_substrateHD = make_derivative(cropped_substrateHD,1,1,deriv_type)
     cropped_substrate = make_derivative(cropped_substrateHD,optm[0], optm[1],deriv_type)
@@ -612,7 +614,7 @@ if __name__ == "__main__":
         plt.show()
     
 #    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
-    mults=np.array([np.arange(5,10,0.6),np.arange(5,10,0.6)])
+    mults=np.array([np.arange(5,10,0.1),np.arange(5,10,0.1)])
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
