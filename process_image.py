@@ -16,7 +16,7 @@ from affine import Affine
 from geotiff import GeoTiff
 
 ShowPlot = False
-#ShowPlot = True
+ShowPlot = True
 bSaveLog = True
 log_file = None
 if bSaveLog:
@@ -56,11 +56,11 @@ def transform_and_fill_new(F, mult_x=5.,mult_y=9,angle=15):
 
     G = np.zeros(
         (max(min(int(F.shape[1]*c+F.shape[0]*d), F.shape[0]),0),
-         max(min(int(F.shape[1]*a+F.shape[0]*b), F.shape[1]),0))
-        , dtype=type(tmp)
+         max(min(int(F.shape[1]*a+F.shape[0]*b), F.shape[1]),0)
+        ,F.shape[2]), dtype=type(tmp)
     )
     
-    u_range, v_range = G.shape
+    u_range, v_range = G.shape[:2]
     
     det_A = a*d-b*c
         
@@ -235,24 +235,24 @@ def make_derivative(data0,mult_x,mult_y,result_type='x'):
         if int(mult_x)!= mult_x or int(mult_y)!= mult_y:
             indices1=np.round(np.arange(0,data0.shape[1]-mult_y,mult_y)).astype(int)
             indices2=np.round(np.arange(0,data0.shape[0]-mult_x,mult_x)).astype(int)
-            data = data0[:,indices1][indices2]
+            data = data0[:,indices1,:][indices2]
         else:
-            data = data0[::int(mult_x),::int(mult_y)] * 1.0
+            data = data0[::int(mult_x),::int(mult_y),:] * 1.0
 
 #    data = downscaling(data0,mult_y,mult_x)
     
     data_x = data * 1.0
 
 
-    data_x[1:, :] = data[:-1, :]-data[1:, :]
+    data_x[1:, :,:] = data[:-1, :,:]-data[1:, :,:]
 #    data_x[1:, :] = np.where(np.abs(data[:-1, :]*data[1:, :])>0,data[:-1, :]-data[1:, :],0)
-    data_x[0, :]=np.zeros(data.shape[1])
+    data_x[0, :,:]=np.zeros((data.shape[1],data.shape[2]))
 
 
     data_y = data * 1.0
-    data_y[:, 1:] = data[:, :-1]-data[:, 1:]
+    data_y[:, 1:,:] = data[:, :-1,:]-data[:, 1:,:]
 #    data_y[:, 1:] = np.where(np.abs(data[:, :-1]*data[:, 1:])>0,data[:, :-1]-data[:, 1:],0)
-    data_y[:, 0]=np.zeros(data.shape[0])
+    data_y[:, 0,:]=np.zeros((data.shape[0],data.shape[2]))
 
 
     if result_type == 'x':
@@ -299,15 +299,22 @@ def calc_for_mults_new(diff_crop0,substrate,mult_i,mult_j,deriv_type,return_type
         # print(diff_substrate.shape)
         # exit(0)
 
-        ix, iy = diff_substrate.shape
+        ix, iy = diff_substrate.shape[:2]
         if deriv_type=='complex':
             im1 = np.zeros(diff_substrate.shape,dtype=complex)
         else:
             im1 = np.zeros(diff_substrate.shape)
-        i1mx, i1my = diff_crop.shape
-        # print(im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my].shape,diff_crop.shape)
-        im1[(ix- i1mx) // 2:(ix- i1mx) // 2 + i1mx, (iy-i1my) // 2:(iy-i1my) // 2 + i1my] = diff_crop
+        i1mx, i1my = diff_crop.shape[:2]
+#        print(im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my].shape,diff_crop.shape)
+        im1[(ix- i1mx) // 2:(ix- i1mx) // 2 + i1mx, (iy-i1my) // 2:(iy-i1my) // 2 + i1my,:] = diff_crop
         ccf = np.abs(cross_correlate_2d(im1, diff_substrate))  # !!!!!!
+        ccf = np.sum(ccf,axis=2)
+        plt.imshow(ccf)
+        plt.show()
+#        for color in range(ccf.shape[2]):
+#            x, y = np.unravel_index(ccf[:,:,color].argmax(), ccf.shape[:2])
+#            snr = np.max(ccf[:,:,color]) / np.mean(ccf[:,:,color])
+#            print(color,snr)
         x, y = np.unravel_index(ccf.argmax(), ccf.shape)
         snr = np.max(ccf) / np.mean(ccf)
         if result[0]<snr:
@@ -333,14 +340,14 @@ def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr
     # print(diff_substrate.shape)
     # exit(0)
 
-    ix, iy = diff_substrate.shape
+    ix, iy = diff_substrate.shape[:2]
     if deriv_type=='complex':
         im1 = np.zeros(diff_substrate.shape,dtype=complex)
     else:
         im1 = np.zeros(diff_substrate.shape)
     i1mx, i1my = diff_crop.shape
     # print(im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my].shape,diff_crop.shape)
-    im1[(ix- i1mx) // 2:(ix- i1mx) // 2 + i1mx, (iy-i1my) // 2:(iy-i1my) // 2 + i1my] = diff_crop
+    im1[(ix- i1mx) // 2:(ix- i1mx) // 2 + i1mx, (iy-i1my) // 2:(iy-i1my) // 2 + i1my,:] = diff_crop
     ccf = np.abs(cross_correlate_2d(im1, diff_substrate))  # !!!!!!
     x, y = np.unravel_index(ccf.argmax(), ccf.shape)
     snr = np.max(ccf) / np.mean(ccf)
@@ -458,7 +465,8 @@ def process_crop(crop, crop_file_name, substrate, mults):
 #    deriv_type='mcomplex'
 #    deriv_type='none'
 #    med_crop = np.sum(crop,axis=2)
-    med_crop = np.median(crop,axis=2)
+#    med_crop = np.median(crop,axis=2)
+    med_crop = crop*1.0
 #    med_crop = crop[:,:,3]
 
     #diff_crop = diff_crop - np.mean(diff_crop) * 1.0
@@ -471,11 +479,11 @@ def process_crop(crop, crop_file_name, substrate, mults):
     diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
     substrate_sm = smooth(substrate,ISmult*6,ISmult*6)
     substrate_sm = substrate_sm[::ISmult,::ISmult]
-    try:
-        optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type)
-    except:
-        print('Initial search failed')
-        return [],[],[]
+#    try:
+    optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type)
+#    except:
+#        print('Initial search failed')
+#        return [],[],[]
     #exit(0)
 #    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
 
@@ -490,16 +498,16 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #optm = (9,5,1076, 2024)
     diff_substrate = make_derivative(substrate,optm[0], optm[1],deriv_type)
     
-    ix, iy = diff_substrate.shape
+    ix, iy = diff_substrate.shape[:2]
     im1 = np.zeros(diff_substrate.shape)
     if deriv_type=='complex':
         im1 = np.zeros(diff_substrate.shape,dtype=complex)
-    i1mx, i1my = diff_crop.shape
-    im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my] = diff_crop
+    i1mx, i1my = diff_crop.shape[:2]
+    im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my,:] = diff_crop
     #print(optm[0], optm[1], np.unravel_index(best_ccf.argmax(), best_ccf.shape), ix - x, iy - y)
     #print('ccf_max=', np.max(best_ccf) / np.mean(best_ccf))
     delta = 10
-    cropped_substrate = diff_substrate[max(ix - x - i1mx//2 - delta,0):min(ix - x - i1mx//2 + i1mx + delta,ix), max(iy - y - i1my//2 - delta,0):min(iy - y - i1my//2 + i1my + delta, iy)]
+    cropped_substrate = diff_substrate[max(ix - x - i1mx//2 - delta,0):min(ix - x - i1mx//2 + i1mx + delta,ix), max(iy - y - i1my//2 - delta,0):min(iy - y - i1my//2 + i1my + delta, iy),:]
     
     if ShowPlot:
         fig = plt.figure()
@@ -519,13 +527,13 @@ def process_crop(crop, crop_file_name, substrate, mults):
                           kek1:
                           int(min((ix - x - i1mx//2)* optm[0] + i1mx* optm[0] + delta, ix * optm[0])),
                           kek2:
-                          int(min((iy - y - i1my//2) * optm[1] + i1my * optm[1] + delta, iy * optm[1]))]
+                          int(min((iy - y - i1my//2) * optm[1] + i1my * optm[1] + delta, iy * optm[1])),:]
     #angls = np.arange(-5,5,0.5)
     #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
     #exit(0)
 
     addmult=0.1
-    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.01),np.arange(optm[1]-addmult,optm[1]+addmult,0.01)]
+    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
 #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
 #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
 
@@ -591,7 +599,8 @@ if __name__ == "__main__":
     print(args.substrate_path)
     substrate_orig = tifffile.imread(args.substrate_path)
     
-    substrate=np.median(substrate_orig,axis=2)
+    substrate=substrate_orig
+#    substrate=np.median(substrate_orig,axis=2)
 #    substrate=np.max(substrate_orig,axis=2)
 #    substrate=np.sum(substrate_orig,axis=2)
 #    substrate=substrate_orig[:,:,3]
@@ -608,13 +617,14 @@ if __name__ == "__main__":
     file_coord = open('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat', 'w')
     print('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat')
             
-    
+    for i in range(3):
+        substrate[:,:,i] = substrate[:,:,i]/np.max(substrate[:,:,i])*1000
     if ShowPlot:
-        plt.imshow(substrate)
+        plt.imshow(substrate[:,:,:3])
         plt.show()
     
 #    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
-    mults=np.array([np.arange(5,10,0.1),np.arange(5,10,0.1)])
+    mults=np.array([np.arange(5,10,0.5),np.arange(5,10,0.5)])
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
