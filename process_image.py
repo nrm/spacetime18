@@ -11,6 +11,7 @@ import argparse
 import rasterio
 import image_processing
 import os
+from affine import Affine
 
 from geotiff import GeoTiff
 
@@ -524,7 +525,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #exit(0)
 
     addmult=0.4
-    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.05),np.arange(optm[1]-addmult,optm[1]+addmult,0.05)]
+    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.1),np.arange(optm[1]-addmult,optm[1]+addmult,0.1)]
 #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
 #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
 
@@ -611,7 +612,7 @@ if __name__ == "__main__":
         plt.show()
     
 #    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
-    mults=np.array([np.arange(5,10,0.4),np.arange(5,10,0.4)])
+    mults=np.array([np.arange(5,10,0.6),np.arange(5,10,0.6)])
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
@@ -702,14 +703,14 @@ if __name__ == "__main__":
                     miniy = min(miniy, y)
                     maxiy = max(maxiy, y)
                 
-            pixels = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+            pixels = [(x1, y1, 'ul'), (x2, y2, 'll'), (x3, y3, 'lr'), (x4, y4, 'ur')]
             
             coords = []
             
             file_coord.write('crop_{}_{}_0000\n'.format(i,j))
             for pixel in pixels:
                 #spatial_coordinate = transform * (pixel[0], pixel[1])
-                spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset='center')
+                spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset=pixel[2])
                 
                 coords.append(spatial_coordinate)
                 print("spatial_coordinate:", spatial_coordinate)
@@ -717,20 +718,52 @@ if __name__ == "__main__":
                 file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
                 file_coord.flush()
             
-            new_transform = rasterio.transform.from_bounds(
-            west=coords[0][0],
-            south=coords[1][1],
-            east=coords[3][0],
-            north=coords[3][1],
-            width=crop.shape[1],
-            height=crop.shape[0]
-            )
+            # new_transform = rasterio.transform.from_bounds(
+            # west=coords[0][0],
+            # south=coords[1][1],
+            # east=coords[3][0],
+            # north=coords[0][1],
+            # width=crop.shape[1],
+            # height=crop.shape[0]
+            # )
+            
+            optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0, -coef_c*optm[1], coef_a*optm[0], x_0])*1.0
+            
+            # optimal_params = np.array([coef_d*optm[1], coef_c*optm[0], y_0, coef_b*optm[1], coef_a*optm[0], x_0])*1.0
+            
+            # optimal_params = np.array([coef_a*optm[1], -coef_b*optm[0], y_0, -coef_c*optm[1], coef_d*optm[0], x_0])*1.0
+            # optimal_params = np.array([coef_a*optm[1], coef_c*optm[0], y_0, coef_b*optm[1], coef_d*optm[0], x_0])*1.0
+            
+            
+            
+            
+            # optm = (optm[0] / crop.shape[0] * (crop.shape[0] -1), optm[1] / crop.shape[1] * (crop.shape[1] -1))
+            # optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0, -coef_c*optm[1], coef_a*optm[0], x_0])*1.0
+            
+            
+            
+            # M = np.array([
+            #     [coef_a, coef_b, x_0],
+            #     [coef_c, coef_d, y_0]
+            # ])
+            
+            M = np.array([
+                [optimal_params[0], optimal_params[1], optimal_params[2]],
+                [optimal_params[3], optimal_params[4], optimal_params[5]]
+            ])
+            # keldesh = cv2.invertAffineTransform(M)
+            keldesh = M
+            
+            new_transform = Affine(keldesh[0][0], keldesh[0][1], keldesh[0][2], keldesh[1][0], keldesh[1][1], keldesh[1][2])
+            
+            new_transform = transform*(new_transform)
             
             src = rasterio.open(crop_file_name)
-            data = src.read()
+            data = src.read()            
             num_bands = src.count
             profile = src.profile
             profile.update({
+            'driver': 'GTiff',
             'crs': 'EPSG:32637',
             'transform': new_transform,
             'count': num_bands,
