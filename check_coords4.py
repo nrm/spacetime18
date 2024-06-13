@@ -40,6 +40,10 @@ for coordinates_layout_path in coords:
     y4_c = {}
     lines = coords_layout.readlines()
     lines_crop = coords_newcrop.readlines()
+    if len(lines_crop)<4:
+        continue
+    if len(lines)<4:
+        continue
     for i in range(0,len(lines),5):
         _x1_c, _y1_c = lines[i+1].split()
         lines[i] = lines[i][:-1]

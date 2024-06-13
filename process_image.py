@@ -9,12 +9,12 @@ from sklearn.linear_model import LinearRegression
 from joblib import Parallel, delayed
 import argparse
 import rasterio
-
+import image_processing
 
 from geotiff import GeoTiff
 
 ShowPlot = False
-ShowPlot = False
+#ShowPlot = True
 bSaveLog = True
 log_file = None
 if bSaveLog:
@@ -182,7 +182,7 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
         fig.add_subplot(1, 3, 2)
         plt.imshow(np.abs(res),vmax=3)
         fig.add_subplot(1, 3, 3)
-        plt.imshow(np.abs(cropped_substrate),vmax=500)
+        plt.imshow(np.abs(cropped_substrate),vmax=np.mean(np.abs(cropped_substrate))+2*np.std(np.abs(cropped_substrate)))
         fig.suptitle('Кроп, миникропы, подложка')
         plt.show()
 
@@ -276,7 +276,7 @@ def make_derivative(data0,mult_x,mult_y,result_type='x'):
     return 'unknown data type'
 
 
-def calc_for_mults(diff_crop0,substrate,mult_i,mult_j,deriv_type,return_type='snr'):
+def calc_for_mults_new(diff_crop0,substrate,mult_i,mult_j,deriv_type,return_type='snr'):
 #    diff_substrate = substrate[::mult_i, ::mult_j] * 1.0
 
 #    diff_substrate[1:,:]=diff_substrate[:-1,:]-diff_substrate[1:,:]
@@ -319,7 +319,7 @@ def calc_for_mults(diff_crop0,substrate,mult_i,mult_j,deriv_type,return_type='sn
         return ccf
 
 
-def calc_for_mults_old(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr'):
+def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr'):
 #    diff_substrate = substrate[::mult_i, ::mult_j] * 1.0
 
 #    diff_substrate[1:,:]=diff_substrate[:-1,:]-diff_substrate[1:,:]
@@ -362,13 +362,14 @@ def initial_search(diff_crop, substrate, mults,deriv_type):
         for mult_j in mults[1]:
             parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type))
 
-    snrs=Parallel(n_jobs=8)(delayed(calc_for_mults)(*i) for i in parlist)
+    snrs=Parallel(n_jobs=8)(delayed(calc_for_mults_new)(*i) for i in parlist)
+#    snrs=Parallel(n_jobs=8)(delayed(calc_for_mults)(*i) for i in parlist)
     ii=0
     for mult_i in mults[0]:
         for mult_j in mults[1]:
             snr=snrs[ii][0]
             if snr > best_snr:
-                optm = (snrs[ii][1], snrs[ii][2],snrs[ii][3],snrs[ii][4],snrs[ii][5])
+                optm = snrs[ii][1:]
                 best_snr = snr
             ii += 1
     #print("hello")
@@ -454,14 +455,16 @@ def process_crop(crop, crop_file_name, substrate, mults):
 #    deriv_type='mcomplex1'
 #    deriv_type='mcomplex'
 #    deriv_type='none'
+#    med_crop = np.sum(crop,axis=2)
     med_crop = np.median(crop,axis=2)
+#    med_crop = crop[:,:,3]
 
     #diff_crop = diff_crop - np.mean(diff_crop) * 1.0
     #diff_crop[1:, :] = diff_crop[:-1, :]-diff_crop[1:, :]
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmult=3
+    ISmult=5
     med_crop_sm = smooth(med_crop,ISmult,ISmult)
     diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
     substrate_sm = smooth(substrate,ISmult*6,ISmult*6)
@@ -519,8 +522,8 @@ def process_crop(crop, crop_file_name, substrate, mults):
     #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
     #exit(0)
 
-    addmult=0.15
-    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.02),np.arange(optm[1]-addmult,optm[1]+addmult,0.02)]
+    addmult=0.4
+    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.05),np.arange(optm[1]-addmult,optm[1]+addmult,0.05)]
 #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
 #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
 
@@ -556,7 +559,7 @@ def process_crop(crop, crop_file_name, substrate, mults):
         fig.add_subplot(1, 2, 1)
         plt.imshow(np.abs(crop_HD))
         fig.add_subplot(1, 2, 2)
-        plt.imshow(np.abs(cropped_substrateHD),vmax=500)
+        plt.imshow(np.abs(cropped_substrateHD),vmax=10*np.median(np.abs(cropped_substrateHD)))
         fig.suptitle('Метод производной для подложки full HD')
         plt.show()
     
@@ -581,14 +584,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Get name of substrate")
     parser.add_argument('substrate_path', type=str, help ='Path to the substrate file')
     args = parser.parse_args()
+    print(args.substrate_path)
     substrate_orig = tifffile.imread(args.substrate_path)
     
     substrate=np.median(substrate_orig,axis=2)
+#    substrate=np.max(substrate_orig,axis=2)
+#    substrate=np.sum(substrate_orig,axis=2)
+#    substrate=substrate_orig[:,:,3]
     
     if (args.substrate_path == 'layouts/layout_2021-06-15.tif'):
         substrate=np.where(np.abs(substrate)>2000,0,substrate)
     else:
-        substrate=np.where(np.abs(substrate)>10000,0,substrate)
+        substrate=np.where(np.abs(substrate)>20000,0,substrate)
     #substrate=(substrate-np.median(substrate))*1.0
     # substrate=np.where(np.abs(substrate)>10000,10000,substrate)
     
@@ -611,7 +618,9 @@ if __name__ == "__main__":
         for j in range(0,4):
     #for i in range(0,8):
     #    for j in range(0,5):
-            crop_file_name='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            crop_file_name='1_20/crop_{}_{}_0000_corr.tif'.format(i,j)
+            image_processing.process_image_file(crop_file_name_0,crop_file_name)
             #crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
@@ -685,7 +694,7 @@ if __name__ == "__main__":
                 for jj in range(crop.shape[1]):
                     x = int(x_0 +(coef_a*ii + coef_b * jj)*optm[0])
                     y = int(y_0 +(coef_c*ii + coef_d * jj)*optm[1])
-                    sub0[x, y] = 3000
+                    #sub0[x, y] = 3000
 
                     minix = min(minix, x)
                     maxix = max(maxix, x)
