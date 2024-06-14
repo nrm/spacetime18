@@ -14,8 +14,9 @@ before_script:
 deploy:
   stage: deploy
   script:
+    - git checkout master_in_progress
+    - git pull origin master_in_progress
     - if ! git remote | grep github; then git remote add github git@github.com:nrm/spacetime18.git; fi
-    # - git push --force github master_in_progress
-    - if git show-ref --verify --quiet refs/heads/master_in_progress; then git push --force github master_in_progress; else echo "Branch 'master_in_progress' does not exist."; fi
+    - git push --force github master_in_progress
   only:
     - master_in_progress
