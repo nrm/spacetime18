@@ -15,6 +15,6 @@ deploy:
   stage: deploy
   script:
     - git remote add github git@github.com:nrm/spacetime18.git
-    - git push --force github master_in_progresse
+    - git push --force github master_in_progress
   only:
     - master_in_progress
