@@ -15,6 +15,7 @@ deploy:
   stage: deploy
   script:
     - if ! git remote | grep github; then git remote add github git@github.com:nrm/spacetime18.git; fi
-    - git push --force github master_in_progress
+    # - git push --force github master_in_progress
+    - if git show-ref --verify --quiet refs/heads/master_in_progress; then git push --force github master_in_progress; else echo "Branch 'master_in_progress' does not exist."; fi
   only:
     - master_in_progress
