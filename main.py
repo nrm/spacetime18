@@ -89,7 +89,8 @@ async def main_process(layout_name: str, file: UploadFile = File(...)):
     
     taskid =str(unix_time) + '.csv'
     
-    main_process_func(main_process_func, input_file_path, taskid)
+    # main_process_func(main_process_func, input_file_path, taskid)
+    main_process_func(layout_name, input_file_path, taskid)
 
     return {
         "taskid": taskid
