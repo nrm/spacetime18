@@ -716,7 +716,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
 #    return crop_coords, substrate_coords, optm,kek1 + i1mx//2, kek2 + i1my//2
     return crop_coords, substrate_coords, optm,kek1 + (ixHD - x - i1mxHD), kek2 + (iyHD - y - i1myHD)
 
-def main_process_func(substrate_path, crop_file_name_0, outputname):
+def prepare_substrate(substrate_path):
     substrate_orig = tifffile.imread(substrate_path)
     substrate=substrate_orig
     if ('layout_2021-06-15.tif' in substrate_path):
@@ -750,6 +750,14 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(substrate_path))
     
+    return substrate, mults, refined_mults, method
+
+def main_process_func(substrate_path, crop_file_name_0, outputname):
+    substrate, mults, refined_mults, method = prepare_substrate(substrate_path)
+    result = new_process_crop(substrate_path, substrate, mults, refined_mults, method)
+    
+
+def new_process_crop(substrate_path, substrate, mults, refined_mults, method, crop_file_name_0):
     stem, suffix = path.splitext(crop_file_name_0)
     crop_file_name=stem + '_corr' + suffix
     pixel_repair_report.process_image_file(crop_file_name_0,crop_file_name)
@@ -763,7 +771,8 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
         crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
         if(abs(x_)+abs(y_)==0):
             # continue
-            pass
+            # pass
+            return None
             # TODO
     if(len(crop_coords)<3):
         coef_a = 1
@@ -903,7 +912,16 @@ if __name__ == "__main__":
     print(args.substrate_path)
     
     # main_process_func(args.substrate_path, '1_20/crop_0_0_0000.tif', 'tmp')
-    # exit(0)
+    substrate, mults, refined_mults, method = prepare_substrate(args.substrate_path)
+    for i in range(0,5):
+        for j in range(0,4):
+    #for i in range(0,8):
+    #    for j in range(0,5):
+            crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            new_process_crop(substrate, mults, refined_mults, method, crop_file_name_0)
+    if bSaveLog:
+        log_file.close()
+    exit(0)
     
     substrate_orig = tifffile.imread(args.substrate_path)
     #sub_mednp.median(substrate_orig))
