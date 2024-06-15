@@ -384,8 +384,10 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
         if method=='rgb':
             maxcoin=coins[maxcoin_arg,3]
             ccf = np.sum(ccf[:,:,:3],axis=2)
-            x = int(coins[maxcoin_arg,0])
-            y = int(coins[maxcoin_arg,1])
+            #x = int(coins[maxcoin_arg,0])
+            #y = int(coins[maxcoin_arg,1])
+            x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+            maxcoin=0
         if method=='ir':
             maxcoin = 0
             ccf = ccf[:,:,3]
