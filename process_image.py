@@ -906,6 +906,7 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     
     new_transform = transform*(new_transform)
     
+    # src = rasterio.open(crop_file_name_0)
     src = rasterio.open(crop_file_name)
     data = src.read()            
     num_bands = src.count
@@ -924,7 +925,6 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
         os.makedirs(os.path.join('1_20_geotiff', stem_out))
 
-    # tile_path = os.path.join('1_20_geotiff', stem_out, os.path.basename(crop_file_name_0))
     tile_path = os.path.join('1_20_geotiff', stem_out, os.path.basename(crop_file_name))
     with rasterio.open(tile_path, 'w', **profile) as dst:
         dst.write(data)
