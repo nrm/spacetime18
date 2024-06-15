@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 from joblib import Parallel, delayed
 import argparse
 import rasterio
-import image_processing
+import pixel_repair_report
 import os
 from os import path
 from affine import Affine
@@ -752,7 +752,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     
     stem, suffix = path.splitext(crop_file_name_0)
     crop_file_name=stem + '_corr' + suffix
-    image_processing.process_image_file(crop_file_name_0,crop_file_name)
+    pixel_repair_report.process_image_file(crop_file_name_0,crop_file_name)
     if bSaveLog:
         log_file.write('crop_file_name={}\n'.format(crop_file_name))
     crop = tifffile.imread(crop_file_name)
@@ -988,7 +988,7 @@ if __name__ == "__main__":
     #    for j in range(0,5):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
             crop_file_name='1_20/crop_{}_{}_0000_corr.tif'.format(i,j)
-            image_processing.process_image_file(crop_file_name_0,crop_file_name)
+            pixel_repair_report.process_image_file(crop_file_name_0,crop_file_name)
             #crop_file_name='2_40/tile_{}_{}.tif'.format(i,j)
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))

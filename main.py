@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
-from image_processing import process_image_file
+from pixel_repair_report import process_image_file
 from process_image import main_process_func
 
 app = FastAPI()
