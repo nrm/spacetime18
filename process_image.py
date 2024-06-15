@@ -737,8 +737,10 @@ def prepare_substrate(substrate_path):
     
     with rasterio.open(substrate_path) as src:
         transform = src.transform
-    file_coord = open('coordinates_' + substrate_path[8:len(substrate_path)-4] + '_.dat', 'w')
-    print('coordinates_' + substrate_path[8:len(substrate_path)-4] + '_.dat')
+    super_string_partial_name_of_substrate, substrate_suffix = path.splitext(os.path.basename(substrate_path))
+    
+    file_coord = open('coordinates_' + super_string_partial_name_of_substrate + '_.dat', 'w')
+    print('coordinates_' + super_string_partial_name_of_substrate + '_.dat')
             
     print(substrate[-1,-1,:])
     if ShowPlot:
@@ -753,14 +755,14 @@ def prepare_substrate(substrate_path):
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(substrate_path))
     
-    return substrate, mults, refined_mults, file_coord, transform
+    return substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate
 
 def main_process_func(substrate_path, crop_file_name_0, outputname):
     start_time = datetime.now(timezone.utc)
     
-    substrate, mults, refined_mults, file_coord, transform = prepare_substrate(substrate_path)
+    substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
     result_data = []
-    result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform)
+    result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
     end_time = datetime.now(timezone.utc)
     result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
     result_data.append(result)
@@ -777,7 +779,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     
     return result
 
-def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform):
+def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname):
     super_result = {}
     # «layout_name» имя подложки,
     # «crop_name» имя снимка,  
@@ -922,7 +924,8 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
         os.makedirs(os.path.join('1_20_geotiff', stem_out))
 
-    tile_path = os.path.join('1_20_geotiff', stem_out, crop_file_name[5:])
+    # tile_path = os.path.join('1_20_geotiff', stem_out, os.path.basename(crop_file_name_0))
+    tile_path = os.path.join('1_20_geotiff', stem_out, os.path.basename(crop_file_name))
     with rasterio.open(tile_path, 'w', **profile) as dst:
         dst.write(data)
         print(f"Saved tile: {tile_path}")
@@ -936,7 +939,7 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         plt.ylim([maxix,minix])
         plt.xlim([miniy,maxiy])
         fig.suptitle('Сравнение кропа и преобразованной подложки')
-        fig.savefig('pic/'+substrate_path[8:len(substrate_path)-4]+stem+'.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
+        fig.savefig('pic/'+super_string_partial_name_of_substrate+stem+'.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
         if ShowPlot:
             plt.show()
     return super_result
@@ -961,13 +964,15 @@ if __name__ == "__main__":
     outputname = str(unix_time) + '.csv'
     print(substrate_path)
     
-    substrate, mults, refined_mults, file_coord, transform = prepare_substrate(substrate_path)
+    substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
+    # for i in range(0,5):
+    #     for j in range(0,4):
     for i in range(0,1):
         for j in range(0,1):
     #for i in range(0,8):
     #    for j in range(0,5):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform)
+            result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
             end_time = datetime.now(timezone.utc)
             result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
             result_data.append(result)
@@ -1230,7 +1235,7 @@ if __name__ == "__main__":
             'height':crop.shape[0]
             })
             
-            tile_path = os.path.join('1_20_geotiff', crop_file_name[5:])
+            tile_path = os.path.join('1_20_geotiff', os.path.basename(crop_file_name))
             with rasterio.open(tile_path, 'w', **profile) as dst:
                 dst.write(data)
                 print(f"Saved tile: {tile_path}")
