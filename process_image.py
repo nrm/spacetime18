@@ -750,17 +750,17 @@ def prepare_substrate(substrate_path):
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(substrate_path))
     
-    return substrate, mults, refined_mults, method
+    return substrate, mults, refined_mults
 
 def main_process_func(substrate_path, crop_file_name_0, outputname):
-    substrate, mults, refined_mults, method = prepare_substrate(substrate_path)
-    result = new_process_crop(substrate_path, substrate, mults, refined_mults, method)
+    substrate, mults, refined_mults = prepare_substrate(substrate_path)
+    result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0)
     
     if bSaveLog:
         log_file.close()
     
 
-def new_process_crop(substrate_path, substrate, mults, refined_mults, method, crop_file_name_0):
+def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0):
     stem, suffix = path.splitext(crop_file_name_0)
     crop_file_name=stem + '_corr' + suffix
     pixel_repair_report.process_image_file(crop_file_name_0,crop_file_name)
@@ -913,13 +913,13 @@ if __name__ == "__main__":
     print(args.substrate_path)
     
     # main_process_func(args.substrate_path, '1_20/crop_0_0_0000.tif', 'tmp')
-    substrate, mults, refined_mults, method = prepare_substrate(args.substrate_path)
+    substrate, mults, refined_mults = prepare_substrate(args.substrate_path)
     for i in range(0,5):
         for j in range(0,4):
     #for i in range(0,8):
     #    for j in range(0,5):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            new_process_crop(substrate, mults, refined_mults, method, crop_file_name_0)
+            new_process_crop(args.substrate_path, substrate, mults, refined_mults, crop_file_name_0)
     if bSaveLog:
         log_file.close()
     exit(0)
