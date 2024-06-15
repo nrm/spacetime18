@@ -756,6 +756,9 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     substrate, mults, refined_mults, method = prepare_substrate(substrate_path)
     result = new_process_crop(substrate_path, substrate, mults, refined_mults, method)
     
+    if bSaveLog:
+        log_file.close()
+    
 
 def new_process_crop(substrate_path, substrate, mults, refined_mults, method, crop_file_name_0):
     stem, suffix = path.splitext(crop_file_name_0)
@@ -896,8 +899,6 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, method, cr
         fig.savefig('pic/'+substrate_path[8:len(substrate_path)-4]+stem+'.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
         if ShowPlot:
             plt.show()
-    if bSaveLog:
-        log_file.close()
 
 
 if __name__ == "__main__":
