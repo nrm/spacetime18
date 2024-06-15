@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
 from image_processing import process_image_file
+from process_image import main_process_func
 
 app = FastAPI()
 
@@ -75,3 +76,25 @@ async def get_active_layout():
     if active_layout:
         return active_layout
     raise HTTPException(status_code=404, detail="No active layout set")
+
+@app.post("/process_image_api/{layout_name}")
+async def main_process(layout_name: str, file: UploadFile = File(...)):
+    input_file_path = f"temp_{file.filename}"
+    
+    with open(input_file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    
+    from datetime import datetime, timezone
+    unix_time = datetime.now(timezone.utc).timestamp()*1000
+    
+    taskid =str(unix_time) + '.csv'
+    
+    main_process_func(main_process_func, input_file_path, taskid)
+
+    return {
+        "taskid": taskid
+    }
+
+@app.get("/download_coords/{filename}")
+async def download_coords(filename: str):
+    return FileResponse(filename)

@@ -11,6 +11,7 @@ import argparse
 import rasterio
 import image_processing
 import os
+from os import path
 from affine import Affine
 
 # from geotiff import GeoTiff
@@ -715,6 +716,180 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
 #    return crop_coords, substrate_coords, optm,kek1 + i1mx//2, kek2 + i1my//2
     return crop_coords, substrate_coords, optm,kek1 + (ixHD - x - i1mxHD), kek2 + (iyHD - y - i1myHD)
 
+def main_process_func(substrate_path, crop_file_name_0, outputname):
+    substrate_orig = tifffile.imread(substrate_path)
+    substrate=substrate_orig
+    if ('layout_2021-06-15.tif' in substrate_path):
+        substrate=np.where(np.abs(substrate)>2000,0,substrate)
+    else:
+        substrate=np.where(np.abs(substrate)>12500,0,substrate)
+    
+    for i in range(4):
+        sub_mean=np.mean(substrate_orig[:,:,i])
+        sub_std=np.std(substrate_orig[:,:,i])
+        sub_max=np.max(substrate_orig[:,:,i])
+        sub_max=12500
+        maxcolor=1000
+        substrate[:,:,i]=substrate[:,:,i]/sub_max*maxcolor
+    
+    with rasterio.open(substrate_path) as src:
+        transform = src.transform
+    file_coord = open('coordinates_' + substrate_path[8:len(substrate_path)-4] + '_.dat', 'w')
+    print('coordinates_' + substrate_path[8:len(substrate_path)-4] + '_.dat')
+            
+    print(substrate[-1,-1,:])
+    if ShowPlot:
+        plt.imshow(substrate[:,:,0])
+        plt.show()
+    
+    mults=np.array([np.arange(5,10.5,0.2),np.arange(5,10.5,0.2)])
+    addmult=0.15
+    addmult_step=0.05
+    refined_mults=[np.arange(-addmult,+addmult,addmult_step),np.arange(-addmult,+addmult,addmult_step)]
+
+    if bSaveLog:
+        log_file.write('Layout: {}\n'.format(substrate_path))
+    
+    stem, suffix = path.splitext(crop_file_name_0)
+    crop_file_name=stem + '_corr' + suffix
+    image_processing.process_image_file(crop_file_name_0,crop_file_name)
+    if bSaveLog:
+        log_file.write('crop_file_name={}\n'.format(crop_file_name))
+    crop = tifffile.imread(crop_file_name)
+    method='ir'
+    crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+    if(abs(x_)+abs(y_)==0):
+        method='rgb'
+        crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+        if(abs(x_)+abs(y_)==0):
+            # continue
+            pass
+            # TODO
+    if(len(crop_coords)<3):
+        coef_a = 1
+        coef_b = 0
+        coef_c = 0
+        coef_d = 1
+        x_0 = optm[2]+x_
+        y_0 = optm[3]+y_
+    else:
+        x_old, y_old = np.array(crop_coords)[:,0], np.array(crop_coords)[:,1]
+        x = np.array(substrate_coords)[:,0]
+        y = np.array(substrate_coords)[:,1]
+
+        X = np.transpose(np.array([x_old,y_old]))
+        Y = np.transpose(np.array([x,y]))
+        weights = np.ones(Y.shape[0])
+        print('old x_0, y_0:',x_,y_)
+        for iIter in range(10):
+            model = LinearRegression().fit(X, Y,sample_weight=weights)
+            x_0,y_0 = model.intercept_
+            Y1 = model.predict(X)
+
+            weights = 1/(1+np.sum(np.abs(Y1-Y),axis=1)**2)
+        print('new x_0, y_0:',x_0,y_0)
+        
+        print(model.intercept_)
+        print('coef:', model.coef_)
+        coef_a = model.coef_[0][0]
+        coef_b = model.coef_[0][1]
+        coef_c = model.coef_[1][0]
+        coef_d = model.coef_[1][1]
+
+    print ('a:{:.1f}, d:{:.1f}'.format(coef_a, coef_d))
+    print(optm)
+    if bSaveLog:
+        log_file.write('a:{:.6f}, d:{:.6f}, opt:{},{}\n'.format(coef_a, coef_d, optm[0],optm[1]))
+        log_file.write('b:{:.6f}, c:{:.6f}\n\n'.format(coef_b, coef_c))
+
+    y1,x1 = (x_0 + (coef_a*0+coef_b*0)*optm[0]),                         (y_0 + (coef_c*0+coef_d*0)*optm[1])
+    y2,x2 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*0)*optm[0]),             (y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*0)*optm[1])
+    y3,x3 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*(crop.shape[1] - 1))*optm[0]), (y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*(crop.shape[1] - 1))*optm[1])
+    y4,x4 = (x_0 + (coef_a*0+coef_b*(crop.shape[1] - 1))*optm[0]) ,             (y_0 + (coef_c*0+coef_d*(crop.shape[1] - 1))*optm[1])
+    
+    print("******")
+    print(x1,y1)
+    print(x2,y2)
+    print(x3,y3)
+    print(x4,y4)
+    print("_____")
+
+    sub0= substrate*1.0
+    
+    if ShowPlot:
+        minix = sub0.shape[0]
+        maxix = 0
+        miniy = sub0.shape[1]
+        maxiy = 0
+
+        for ii in range(crop.shape[0]):
+            for jj in range(crop.shape[1]):
+                x = int(x_0 +(coef_a*ii + coef_b * jj)*optm[0])
+                y = int(y_0 +(coef_c*ii + coef_d * jj)*optm[1])
+        
+                minix = min(minix, x)
+                maxix = max(maxix, x)
+                miniy = min(miniy, y)
+                maxiy = max(maxiy, y)
+        
+    pixels = [(x1, y1, 'ul'), (x2, y2, 'll'), (x3, y3, 'lr'), (x4, y4, 'ur')]
+    
+    coords = []
+    
+    file_coord.write('crop_{}_{}_0000\n'.format(i,j))
+    for pixel in pixels:
+        spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset=pixel[2])
+        
+        coords.append(spatial_coordinate)
+        print("spatial_coordinate:", spatial_coordinate)
+
+        file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
+        file_coord.flush()
+    
+    optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0, -coef_c*optm[1], coef_a*optm[0], x_0])*1.0
+    
+    M = np.array([
+        [optimal_params[0], optimal_params[1], optimal_params[2]],
+        [optimal_params[3], optimal_params[4], optimal_params[5]]
+    ])
+    
+    new_transform = Affine(M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2])
+    
+    new_transform = transform*(new_transform)
+    
+    src = rasterio.open(crop_file_name)
+    data = src.read()            
+    num_bands = src.count
+    profile = src.profile
+    profile.update({
+        'driver': 'GTiff',
+        'crs': 'EPSG:32637',
+        'transform': new_transform,
+        'count': num_bands,
+        'width':crop.shape[1],
+        'height':crop.shape[0]
+    })
+    
+    tile_path = os.path.join('1_20_geotiff', crop_file_name[5:])
+    with rasterio.open(tile_path, 'w', **profile) as dst:
+        dst.write(data)
+        print(f"Saved tile: {tile_path}")
+    
+    if ShowPlot:
+        fig = plt.figure(figsize=(10, 8))
+        fig.add_subplot(1, 2, 1)
+        plt.imshow(crop[:,:,0],vmax=1000)
+        fig.add_subplot(1, 2, 2)
+        plt.imshow(np.abs(sub0),vmax=1000)
+        plt.ylim([maxix,minix])
+        plt.xlim([miniy,maxiy])
+        fig.suptitle('Сравнение кропа и преобразованной подложки')
+        fig.savefig('pic/'+substrate_path[8:len(substrate_path)-4]+'_crop_{}_{}_0000.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
+        if ShowPlot:
+            plt.show()
+    if bSaveLog:
+        log_file.close()
+
 
 if __name__ == "__main__":
     # substrate_orig = tifffile.imread('layouts/layout_2021-06-15.tif')   #
@@ -726,6 +901,10 @@ if __name__ == "__main__":
     parser.add_argument('substrate_path', type=str, help ='Path to the substrate file')
     args = parser.parse_args()
     print(args.substrate_path)
+    
+    main_process_func(args.substrate_path, '1_20/crop_0_0_0000.tif', 'tmp')
+    exit(0)
+    
     substrate_orig = tifffile.imread(args.substrate_path)
     #sub_mednp.median(substrate_orig))
     substrate=substrate_orig
