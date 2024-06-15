@@ -836,7 +836,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     
     coords = []
     
-    file_coord.write('crop_{}_{}_0000\n'.format(i,j))
+    file_coord.write(stem + '\n')
     for pixel in pixels:
         spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset=pixel[2])
         
@@ -884,7 +884,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
         plt.ylim([maxix,minix])
         plt.xlim([miniy,maxiy])
         fig.suptitle('Сравнение кропа и преобразованной подложки')
-        fig.savefig('pic/'+substrate_path[8:len(substrate_path)-4]+'_crop_{}_{}_0000.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
+        fig.savefig('pic/'+substrate_path[8:len(substrate_path)-4]+stem+'.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
         if ShowPlot:
             plt.show()
     if bSaveLog:
