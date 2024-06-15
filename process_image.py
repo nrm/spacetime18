@@ -14,6 +14,10 @@ import os
 from os import path
 from affine import Affine
 
+import csv
+import datetime
+from datetime import datetime, timezone, date
+
 # from geotiff import GeoTiff
 
 ShowPlot = False
@@ -22,12 +26,6 @@ bSaveLog = False
 log_file = None
 if bSaveLog:
     log_file=open('log_file.txt','w',buffering=1)
-
-if not os.path.exists('1_20_geotiff'):
-    os.makedirs('1_20_geotiff')
-
-if not os.path.exists('pic'):
-    os.makedirs('pic')
 
 def transform_and_fill_new(F, mult_x=5.,mult_y=9,angle=15):
     tmp=F[0][0]
@@ -716,7 +714,12 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
 #    return crop_coords, substrate_coords, optm,kek1 + i1mx//2, kek2 + i1my//2
     return crop_coords, substrate_coords, optm,kek1 + (ixHD - x - i1mxHD), kek2 + (iyHD - y - i1myHD)
 
-def main_process_func(substrate_path, crop_file_name_0, outputname):
+def prepare_substrate(substrate_path):
+    if not os.path.exists('1_20_geotiff'):
+        os.makedirs('1_20_geotiff')
+
+    if not os.path.exists('pic'):
+        os.makedirs('pic')
     substrate_orig = tifffile.imread(substrate_path)
     substrate=substrate_orig
     if ('layout_2021-06-15.tif' in substrate_path):
@@ -750,6 +753,40 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(substrate_path))
     
+    return substrate, mults, refined_mults, file_coord, transform
+
+def main_process_func(substrate_path, crop_file_name_0, outputname):
+    start_time = datetime.now(timezone.utc)
+    
+    substrate, mults, refined_mults, file_coord, transform = prepare_substrate(substrate_path)
+    result_data = []
+    result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform)
+    end_time = datetime.now(timezone.utc)
+    result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+    result_data.append(result)
+    
+    with open('coords_' + outputname, 'w', newline='') as f:
+        writer = csv.DictWriter(
+            f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
+        writer.writeheader()
+        for d in result_data:
+            writer.writerow(d)
+    
+    if bSaveLog:
+        log_file.close()
+    
+    return result
+
+def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform):
+    super_result = {}
+    # «layout_name» имя подложки,
+    # «crop_name» имя снимка,  
+    # «ul», «ur», «br», «bl», где лево-верх, право-верх, право-низ, лево-низ координаты, 
+    # «crs» координатная система в формате «EPSG:{12345}», 
+    # «start» и «end»
+    super_result["layout_name"] = os.path.basename(substrate_path)
+    super_result["crop_name"] = os.path.basename(crop_file_name_0)
+    
     stem, suffix = path.splitext(crop_file_name_0)
     crop_file_name=stem + '_corr' + suffix
     pixel_repair_report.process_image_file(crop_file_name_0,crop_file_name)
@@ -763,7 +800,8 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
         crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
         if(abs(x_)+abs(y_)==0):
             # continue
-            pass
+            # pass
+            return None
             # TODO
     if(len(crop_coords)<3):
         coef_a = 1
@@ -846,6 +884,15 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
         file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
         file_coord.flush()
     
+    super_result["ul"] = str(coords[0][1]) + '_' + str(coords[0][0])
+    super_result["ur"] = str(coords[3][1]) + '_' + str(coords[3][0])
+    super_result["br"] = str(coords[2][1]) + '_' + str(coords[2][0])
+    super_result["bl"] = str(coords[1][1]) + '_' + str(coords[1][0])
+    
+    super_result["crs"] = 'EPSG:32637'
+    
+    super_result["start"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+    
     optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0, -coef_c*optm[1], coef_a*optm[0], x_0])*1.0
     
     M = np.array([
@@ -870,7 +917,12 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
         'height':crop.shape[0]
     })
     
-    tile_path = os.path.join('1_20_geotiff', crop_file_name[5:])
+    stem_out, suffix_out = path.splitext(outputname)
+    
+    if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
+        os.makedirs(os.path.join('1_20_geotiff', stem_out))
+
+    tile_path = os.path.join('1_20_geotiff', stem_out, crop_file_name[5:])
     with rasterio.open(tile_path, 'w', **profile) as dst:
         dst.write(data)
         print(f"Saved tile: {tile_path}")
@@ -887,8 +939,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
         fig.savefig('pic/'+substrate_path[8:len(substrate_path)-4]+stem+'.png'.format(i,j), bbox_inches = 'tight', pad_inches = 0)
         if ShowPlot:
             plt.show()
-    if bSaveLog:
-        log_file.close()
+    return super_result
 
 
 if __name__ == "__main__":
@@ -897,13 +948,43 @@ if __name__ == "__main__":
     # substrate_orig = tifffile.imread('layouts/layout_2021-10-10.tif')
     # substrate_orig = tifffile.imread('layouts/layout_2022-03-17.tif')
     
+    start_time = datetime.now(timezone.utc)
+    
+    result_data = []
+    
     parser = argparse.ArgumentParser(description="Get name of substrate")
     parser.add_argument('substrate_path', type=str, help ='Path to the substrate file')
     args = parser.parse_args()
-    print(args.substrate_path)
+    substrate_path = args.substrate_path
+    unix_time = datetime.now(timezone.utc).timestamp()*1000
     
-    # main_process_func(args.substrate_path, '1_20/crop_0_0_0000.tif', 'tmp')
-    # exit(0)
+    outputname = str(unix_time) + '.csv'
+    print(substrate_path)
+    
+    substrate, mults, refined_mults, file_coord, transform = prepare_substrate(substrate_path)
+    for i in range(0,1):
+        for j in range(0,1):
+    #for i in range(0,8):
+    #    for j in range(0,5):
+            crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
+            result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform)
+            end_time = datetime.now(timezone.utc)
+            result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+            result_data.append(result)
+    
+    with open('coords_' + outputname, 'w', newline='') as f:
+        writer = csv.DictWriter(
+            f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
+        writer.writeheader()
+        for d in result_data:
+            writer.writerow(d)
+    
+    if bSaveLog:
+        log_file.close()
+    
+    if bSaveLog:
+        log_file.close()
+    exit(0)
     
     substrate_orig = tifffile.imread(args.substrate_path)
     #sub_mednp.median(substrate_orig))
