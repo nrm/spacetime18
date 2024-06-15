@@ -27,3 +27,6 @@ docker compose up --build
 ## Пример работы с API
 
  Описан в файле API_docs.md
+
+
+ ## Add gitlab CI

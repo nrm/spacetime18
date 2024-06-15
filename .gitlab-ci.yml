@@ -1,0 +1,22 @@
+stages:
+  - deploy
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+before_script:
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - echo "$SPACETIME18_DEPLOY_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+deploy:
+  stage: deploy
+  script:
+    - git checkout master_in_progress
+    - git pull origin master_in_progress
+    - if ! git remote | grep github; then git remote add github git@github.com:nrm/spacetime18.git; fi
+    - git push --force github master_in_progress
+  only:
+    - master_in_progress
