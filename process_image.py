@@ -17,7 +17,7 @@ from geotiff import GeoTiff
 
 ShowPlot = False
 #ShowPlot = True
-bSaveLog = True
+bSaveLog = False
 log_file = None
 if bSaveLog:
     log_file=open('log_file.txt','w',buffering=1)
@@ -364,8 +364,8 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
         ccf = np.abs(cross_correlate_2d(im1, diff_substrate))  # !!!!!!
         coins=np.zeros((ccf.shape[2],4))
         for color in range(ccf.shape[2]):
-#            x, y = np.unravel_index(ccf[:,:,color].argmax(), ccf.shape[:2])
-            x, y = argmax_ignore_bounds(ccf[:,:,color],i1mx//2,i1my//2)
+            x, y = np.unravel_index(ccf[:,:,color].argmax(), ccf.shape[:2])
+#            x, y = argmax_ignore_bounds(ccf[:,:,color],i1mx//2,i1my//2)
             snr = np.max(ccf[:,:,color]) / np.mean(ccf[:,:,color])
             coins[color,0] = x
             coins[color,1] = y
@@ -385,8 +385,8 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
             ccf = ccf[:,:,3]
     #    plt.imshow(ccf)
     #    plt.show()
-            #x, y = np.unravel_index(ccf.argmax(), ccf.shape)
-            x, y = argmax_ignore_bounds(ccf,i1my//2,i1mx//2)
+            x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+            #x, y = argmax_ignore_bounds(ccf,i1my//2,i1mx//2)
         snr = np.max(ccf) / np.mean(ccf)
         #print('sum snr :',snr,mult_i,mult_j,x,y)
 
@@ -573,7 +573,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmult=4
+    ISmult=2
     med_crop_sm = smooth(med_crop,ISmult,ISmult)
     diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
     substrate_sm0 = smooth(substrate,ISmult*6,ISmult*6)
@@ -806,9 +806,11 @@ if __name__ == "__main__":
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
-            crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method='rgb')
+            method='ir'
+            crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
             if(abs(x_)+abs(y_)==0):
-                crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method='ir')
+                method='rgb'
+                crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
                 if(abs(x_)+abs(y_)==0):
                     continue
             if(len(crop_coords)<3):
