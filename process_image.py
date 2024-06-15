@@ -22,6 +22,12 @@ log_file = None
 if bSaveLog:
     log_file=open('log_file.txt','w',buffering=1)
 
+if not os.path.exists('1_20_geotiff'):
+    os.makedirs('1_20_geotiff')
+
+if not os.path.exists('pic'):
+    os.makedirs('pic')
+
 def transform_and_fill_new(F, mult_x=5.,mult_y=9,angle=15):
     tmp=F[0][0]
 #     for _ in range(len(F.shape)-1):
