@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tifffile
-import glob
-from scipy import signal
+# import glob
+# from scipy import signal
 import scipy
 #import cv2
 from sklearn.linear_model import LinearRegression
@@ -13,7 +13,7 @@ import image_processing
 import os
 from affine import Affine
 
-from geotiff import GeoTiff
+# from geotiff import GeoTiff
 
 ShowPlot = False
 #ShowPlot = True
@@ -229,21 +229,21 @@ def smooth(x, N, M):
     a = (a[:,M:] - a[:,:-M]) / float(M)
     return a
 
-def affine_transform(matrix, params):
-    rows, cols = matrix.shape
-    # Define the affine transformation matrix
-    M = np.array([
-        [params[0], params[1], params[2]],
-        [params[3], params[4], params[5]]
-    ])
+# def affine_transform(matrix, params):
+#     rows, cols = matrix.shape
+#     # Define the affine transformation matrix
+#     M = np.array([
+#         [params[0], params[1], params[2]],
+#         [params[3], params[4], params[5]]
+#     ])
 
-    # Apply the affine transformation
-    transformed = cv2.warpAffine(matrix, M, (cols, rows))
-    return transformed
+#     # Apply the affine transformation
+#     transformed = cv2.warpAffine(matrix, M, (cols, rows))
+#     return transformed
 
-def downscaling(F, multx, multy):
-    params = [1./multx, 0, 0, 0, 1./multy, 0]
-    return affine_transform(F, params) #[:,:int(F.shape[1]/multx)][:int(F.shape[0]/multy)]
+# def downscaling(F, multx, multy):
+#     params = [1./multx, 0, 0, 0, 1./multy, 0]
+#     return affine_transform(F, params) #[:,:int(F.shape[1]/multx)][:int(F.shape[0]/multy)]
 
 def make_derivative(data0,mult_x,mult_y,result_type='x'):
 #    if(mult_x*mult_y!=1):
@@ -712,7 +712,9 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
                         (tmp_cord[1] + kek2)) for tmp_cord in cropped_substrate_coords]
 
 #    return crop_coords, substrate_coords, optm,kek1 + (ixHD - x + i1mxHD), kek2 + (iyHD - y + i1myHD)
-    return crop_coords, substrate_coords, optm,kek1 + i1mx//2, kek2 + i1my//2
+#    return crop_coords, substrate_coords, optm,kek1 + i1mx//2, kek2 + i1my//2
+    return crop_coords, substrate_coords, optm,kek1 + (ixHD - x - i1mxHD), kek2 + (iyHD - y - i1myHD)
+
 
 if __name__ == "__main__":
     # substrate_orig = tifffile.imread('layouts/layout_2021-06-15.tif')   #
