@@ -12,3 +12,4 @@ nppBackup
 log_file.txt
 1_20_geotiff/
 __pycache__/
+*.csv
