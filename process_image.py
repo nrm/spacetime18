@@ -902,8 +902,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args.substrate_path)
     
-    main_process_func(args.substrate_path, '1_20/crop_0_0_0000.tif', 'tmp')
-    exit(0)
+    # main_process_func(args.substrate_path, '1_20/crop_0_0_0000.tif', 'tmp')
+    # exit(0)
     
     substrate_orig = tifffile.imread(args.substrate_path)
     #sub_mednp.median(substrate_orig))
