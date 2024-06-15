@@ -109,7 +109,7 @@ for coordinates_layout_path in coords:
         print("x4, y4", x4y4,_o_c[3][0], _o_c[3][1])
         mean_o_c.append((x1y1 + x2y2 + x3y3 + x4y4)/4)
         plt.plot([_o_c[3][0]], [_o_c[3][1]],'o',color='orange')
-        if (np.abs(_o_c[3][0])+np.abs(_o_c[3][1])<400):
+        if (np.abs(_o_c[3][0])+np.abs(_o_c[3][1])<1000):
             num+=1
 
         print("mean", mean_o_c[-1])
@@ -117,8 +117,8 @@ for coordinates_layout_path in coords:
     plt.plot([],[],'o',color='blue',label='x2y2')
     plt.plot([],[],'o',color='black',label='x3y3')
     plt.plot([],[],'o',color='orange',label='x4y4')
-    plt.xlim(-300,300)
-    plt.ylim(-300,300)
+    plt.xlim(-500,500)
+    plt.ylim(-500,500)
     plt.legend()
     plt.title(coordinates_layout_path+' ndata='+str(num))
 #    plt.show()

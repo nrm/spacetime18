@@ -4,7 +4,7 @@ import tifffile
 import glob
 from scipy import signal
 import scipy
-import cv2
+#import cv2
 from sklearn.linear_model import LinearRegression
 from joblib import Parallel, delayed
 import argparse
@@ -16,8 +16,8 @@ from affine import Affine
 from geotiff import GeoTiff
 
 ShowPlot = False
-ShowPlot = True
-bSaveLog = True
+#ShowPlot = True
+bSaveLog = False
 log_file = None
 if bSaveLog:
     log_file=open('log_file.txt','w',buffering=1)
@@ -140,7 +140,7 @@ def ccf_repro_images(diff_crop,cropped_substrate,ncut):
     return crop_coords, cropped_substrate_coords, cs
 
 
-def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
+def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut,method = 'rgb'):
     mcrop = np.zeros(cropped_substrate.shape,dtype=complex)
     res = np.zeros(cropped_substrate.shape,dtype=complex)
 
@@ -163,9 +163,14 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
                 continue
 
             ccf = np.abs(cross_correlate_2d(mcrop, cropped_substrate))  # !!!!!!
-            ccf = np.sum(ccf[:,:,:3],axis=2)
-            x, y = np.unravel_index(ccf.argmax(), ccf.shape)
-            snr = np.max(ccf) / np.mean(ccf)
+            if method=='rgb':
+                ccf = np.sum(ccf[:,:,:3],axis=2)
+                x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+                snr = np.max(ccf) / np.mean(ccf)
+            if method=='ir':
+                ccf = ccf[:,:,3]
+                x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+                snr = np.max(ccf) / np.mean(ccf)
 
             #print(i, j, x, y, snr)
 #            if snr > 10:
@@ -173,9 +178,10 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut):
                 np.abs(x + i * cs[0] - cropped_substrate.shape[0] + cs[0]//2)<cs[0] and \
                 np.abs(y + j * cs[1] - cropped_substrate.shape[1] + cs[1]//2)<cs[1]:
                     try:
-                        res[xc * 2 + cs[0] // 2 - x:xc * 2 + cs[0] // 2 - x + cs[0],
-                        yc * 2 + cs[1] // 2 - y:yc * 2 + cs[1] // 2 - y + cs[1],:] = diff_crop[i * cs[0]:(i + 1) * cs[0],
-                                                                        j * cs[1]:(j + 1) * cs[1],:]
+                        if ShowPlot:
+                            res[xc * 2 + cs[0] // 2 - x:xc * 2 + cs[0] // 2 - x + cs[0],
+                            yc * 2 + cs[1] // 2 - y:yc * 2 + cs[1] // 2 - y + cs[1],:] = diff_crop[i * cs[0]:(i + 1) * cs[0],
+                                                                            j * cs[1]:(j + 1) * cs[1],:]
                         crop_coords.append((i * cs[0], j * cs[1]))
                         cropped_substrate_coords.append((xc * 2 + cs[0] // 2 - x, yc * 2 + cs[1] // 2 - y))
                         #print(snr,x + i * cs[0] - cropped_substrate.shape[0] + cs[0]//2, y + j * cs[1] - cropped_substrate.shape[1] + cs[1]//2)
@@ -315,26 +321,18 @@ def argmax_ignore_bounds(array, stepx, stepy):
     Returns:
     tuple: Tuple representing the argmax index within the valid region of the array.
     """
-    rows, cols = array.shape
-
-    # Ensure stepx and stepy are valid
-    if stepx * 2 >= rows or stepy * 2 >= cols:
-        raise ValueError("Step sizes are too large for the array dimensions.")
 
     # Slice the array to exclude the boundaries
-    valid_region = array[stepx:rows-stepx, stepy:cols-stepy]
+    valid_region = array[stepx:-stepx, stepy:-stepy]
 
     # Find the index of the maximum value in the valid region
     local_argmax = np.unravel_index(np.argmax(valid_region), valid_region.shape)
 
-    # Map local indices to global indices
-    global_argmax =  local_argmax[1] + stepy,local_argmax[0] + stepx
-
-    return global_argmax
+    return local_argmax[0] + stepx, local_argmax[1] + stepy
 
 
 
-def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr',find_rotation=False):
+def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr',find_rotation=False,method='rgb'):
 #    diff_substrate = substrate[::mult_i, ::mult_j] * 1.0
 
 #    diff_substrate[1:,:]=diff_substrate[:-1,:]-diff_substrate[1:,:]
@@ -379,27 +377,31 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
             coins[color,1] = y
             coins[color,2] = snr
 
- #           print(color,x,y,snr)
+         #   print(color,x,y,snr)
 
     #    ccf = np.sum(ccf,axis=2)
         maxcoin_arg,coins = calc_maxcoin(coins)
-        maxcoin=coins[maxcoin_arg,3]
-        ccf = np.sum(ccf[:,:,:3],axis=2)
-#        ccf = ccf[:,:,3]
-
+        if method=='rgb':
+            maxcoin=coins[maxcoin_arg,3]
+            ccf = np.sum(ccf[:,:,:3],axis=2)
+            x = int(coins[maxcoin_arg,0])
+            y = int(coins[maxcoin_arg,1])
+        if method=='ir':
+            maxcoin = 0
+            ccf = ccf[:,:,3]
     #    plt.imshow(ccf)
     #    plt.show()
-        x, y = np.unravel_index(ccf.argmax(), ccf.shape)
-        #x, y = argmax_ignore_bounds(ccf,i1my//2,i1mx//2)
+            x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+            #x, y = argmax_ignore_bounds(ccf,i1my//2,i1mx//2)
         snr = np.max(ccf) / np.mean(ccf)
-#        print('sum snr :',snr,mult_i,mult_j,x,y)
+        #print('sum snr :',snr,mult_i,mult_j,x,y)
 
 #        if result[0]<snr:
 #            result=(snr,mult_i,mult_j,x,y,angl,maxcoin)
 
         if result[6]<=maxcoin:
             if result[0]<snr:
-                result=(snr,mult_i,mult_j,int(coins[maxcoin_arg,0]),int(coins[maxcoin_arg,1]),angl,maxcoin)
+                result=(snr,mult_i,mult_j,x,y,angl,maxcoin)
 #                result=(snr,mult_i,mult_j,x,y,angl,maxcoin)
 
 
@@ -441,9 +443,9 @@ def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr
         snr = np.max(ccf[:,:,color]) / np.mean(ccf[:,:,color])
         print(color,x,y,snr)
 
-#    ccf = np.sum(ccf,axis=2)
+    ccf = np.sum(ccf,axis=2)
     #ccf = np.sum(ccf[:,:,:3],axis=2)
-    ccf = ccf[:,:,3]
+    #ccf = ccf[:,:,3]
 
 #    plt.imshow(ccf)
 #    plt.show()
@@ -459,39 +461,37 @@ def calc_for_mults(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type='snr
 
 
 
-def initial_search(diff_crop, substrate, mults,deriv_type,find_rotation=False):
+def initial_search(diff_crop, substrate, mults,deriv_type,find_rotation=False,method='ir'):
     #best_ccf=np.zeros(diff_crop.shape)
     import time
 
     start = time.time()
-    best_snr=0
-    best_coin=0
+    nbest=mults.shape[0]*mults.shape[1]
+    #best_results=np.zeros((nbest,7))
+    #best_snr=0
+    #best_coin=0
     optm=(0,0)
     parlist=[]
     for mult_i in mults[0]:
         for mult_j in mults[1]:
-            parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type,'snr',find_rotation))
+            parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type,'snr',find_rotation,method))
 
     snrs=Parallel(n_jobs=16)(delayed(calc_for_mults_new)(*i) for i in parlist)
 #    snrs=Parallel(n_jobs=1)(delayed(calc_for_mults)(*i) for i in parlist)
-    ii=0
-    for mult_i in mults[0]:
-        for mult_j in mults[1]:
-            snr=snrs[ii][0]
-            coin=snrs[ii][6]
-            #print(snr)
-            if coin >= best_coin:
-                if snr > best_snr:
-                        optm = snrs[ii][1:]
-                        best_snr = snr
-                        best_coin = coin
-            ii += 1
+
+    snrs=np.array(snrs)
+    snrs[:,-1]=snrs[:,-1]*1000+snrs[:,0]
+    snrs=snrs[np.argsort(snrs[:, -1])][::-1,:]
+    #exit(0)
+
     #print("hello")
+    if not find_rotation:
+        print(snrs[:7,1:])
     end = time.time()
     print('time:',end-start)
     if bSaveLog:
-        log_file.write('initial_search best SNR:{}\n'.format(best_snr))
-    return optm,best_snr
+        log_file.write('initial_search best SNR:{}\n'.format(snrs[0,0]))
+    return snrs
 
 def angle_test_fullHD(diff_crop, substrate, angls, mult_i,mult_j, deriv_type):
     #best_ccf=np.zeros(diff_crop.shape)
@@ -563,7 +563,7 @@ def scale_image(image, multx, multy):
 #def make_cropped_substate():
 
 
-def process_crop(crop, crop_file_name, substrate, mults):
+def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='rgb'):
 #    deriv_type='x'
     deriv_type='complex'
 #    deriv_type='mcomplex1'
@@ -582,94 +582,114 @@ def process_crop(crop, crop_file_name, substrate, mults):
     ISmult=2
     med_crop_sm = smooth(med_crop,ISmult,ISmult)
     diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
-    substrate_sm = smooth(substrate,ISmult*6,ISmult*6)
-    substrate_sm = substrate_sm[::ISmult,::ISmult]
-#    try:
-    optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type,find_rotation=False)
+    substrate_sm0 = smooth(substrate,ISmult*6,ISmult*6)
+    substrate_sm = substrate_sm0[::ISmult,::ISmult]
+    #try:
+    search_results = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type,find_rotation=False,method=method)
+#    optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type,find_rotation=False,method=method)
 #    optm,best_snr = initial_search(diff_crop, substrate_sm, mults, deriv_type)
-#    except:
-#        print('Initial search failed')
-#        return [],[],[]
+    #except:
+    #    print('Initial search failed')
+    #    return [],[],[],0,0
     #exit(0)
 #    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
+    max_snrs=7
+    for is_r in range(max_snrs):
+        if is_r==max_snrs-1:
+            print('snr search failed')
+            return [],[],[],0,0
 
-    print(crop_file_name,' SNR:{:.1f}'.format(best_snr),' mults:',optm)
-    x, y = optm[2]*ISmult,optm[3]*ISmult
-    #exit(0)
-    
-    
-    #print('x,y:',x,y)
-    #x,y = 1076, 2024
-    #print('x,y:',x,y)
-    #optm = (9,5,1076, 2024)
-    diff_substrate = make_derivative(substrate,optm[0], optm[1],deriv_type)
-    
-    ix, iy = diff_substrate.shape[:2]
-    im1 = np.zeros(diff_substrate.shape)
-    if deriv_type=='complex':
-        im1 = np.zeros(diff_substrate.shape,dtype=complex)
-    i1mx, i1my = diff_crop.shape[:2]
-    im1[ix // 2:ix // 2 + i1mx, iy // 2:iy // 2 + i1my,:] = diff_crop
-    #print(optm[0], optm[1], np.unravel_index(best_ccf.argmax(), best_ccf.shape), ix - x, iy - y)
-    #print('ccf_max=', np.max(best_ccf) / np.mean(best_ccf))
-    delta = 10
-    cropped_substrate = diff_substrate[max(ix - x - i1mx//2 - delta,0):min(ix - x - i1mx//2 + i1mx + delta,ix), max(iy - y - i1my//2 - delta,0):min(iy - y - i1my//2 + i1my + delta, iy),:]
-    
-    if ShowPlot:
-        fig = plt.figure()
-        fig.add_subplot(1, 2, 1)
-        plt.imshow(np.sum(np.abs(diff_crop),axis=2))
-        fig.add_subplot(1, 2, 2)
-        plt.imshow(np.sum(np.abs(cropped_substrate),axis=2))
-        fig.suptitle('Метод производной для загрубленной подложки 1')
-        plt.show()
+        best_snr=search_results[is_r,0]
+        optm=search_results[is_r,1:]
+        print(crop_file_name,' SNR:{:.1f}'.format(best_snr),' mults:',optm)
+        x, y = int(optm[2]*ISmult),int(optm[3]*ISmult)
+        #exit(0)
+        
+        
+        #print('x,y:',x,y)
+        #x,y = 1076, 2024
+        #print('x,y:',x,y)
+        #optm = (9,5,1076, 2024)
+        diff_substrate = make_derivative(substrate_sm0,optm[0], optm[1],deriv_type)
+        
+        ix, iy = diff_substrate.shape[:2]
+    #    im1 = np.zeros(diff_substrate.shape)
+    #    if deriv_type=='complex':
+    #        im1 = np.zeros(diff_substrate.shape,dtype=complex)
+        i1mx, i1my = diff_crop.shape[:2]
+        print('sub, crop shape:',diff_substrate.shape[:2],diff_crop.shape[:2])
+    #    im1[ix // 2 - i1mx//2:ix // 2 - i1mx//2  + i1mx, iy // 2  - i1my//2:iy // 2 + i1my - i1my//2,:] = diff_crop
 
-    delta = 200
-    # cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
+        #print(optm[0], optm[1], np.unravel_index(best_ccf.argmax(), best_ccf.shape), ix - x, iy - y)
+        #print('ccf_max=', np.max(best_ccf) / np.mean(best_ccf))
+        delta = 10
+        cropped_substrate = diff_substrate[max(ix - x - i1mx//2 - delta,0):min(ix - x - i1mx//2 + i1mx + delta,ix), max(iy - y - i1my//2 - delta,0):min(iy - y - i1my//2 + i1my + delta, iy),:]
+        
+        if ShowPlot:
+            fig = plt.figure()
+            fig.add_subplot(1, 2, 1)
+            plt.imshow(np.sum(np.abs(diff_crop),axis=2))
+            fig.add_subplot(1, 2, 2)
+            plt.imshow(np.sum(np.abs(cropped_substrate),axis=2))
+            fig.suptitle('Метод производной для загрубленной подложки 1')
+            plt.show()
 
-    kek1 = int(max((ix - x - i1mx//2) * optm[0] - delta, 0))
-    kek2 = int(max((iy - y - i1my//2) * optm[1] - delta, 0))
-    cropped_substrateHD = substrate[
-                          kek1:
-                          int(min((ix - x - i1mx//2)* optm[0] + i1mx* optm[0] + delta, ix * optm[0])),
-                          kek2:
-                          int(min((iy - y - i1my//2) * optm[1] + i1my * optm[1] + delta, iy * optm[1])),:]
-    #angls = np.arange(-5,5,0.5)
-    #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
-    #exit(0)
+        delta = 100
+        # cropped_substrateHD = substrate[max(ix - x - delta,0)*optm[0]:min(ix - x + i1mx + delta,ix)*optm[0], max(iy - y - delta,0)*optm[1]:min(iy - y + i1my + delta, iy)*optm[1]]
 
-    addmult=0.5
-    new_mults=[np.arange(optm[0]-addmult,optm[0]+addmult,0.2),np.arange(optm[1]-addmult,optm[1]+addmult,0.2)]
-#    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
-#    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
+        kek1 = int(max((ix - x - i1mx//2) * optm[0] - delta, 0))
+        kek2 = int(max((iy - y - i1my//2) * optm[1] - delta, 0))
+        cropped_substrateHD = substrate[
+                            kek1:
+                            int(min((ix - x - i1mx//2)* optm[0] + i1mx* optm[0] + delta, ix * optm[0])),
+                            kek2:
+                            int(min((iy - y - i1my//2) * optm[1] + i1my * optm[1] + delta, iy * optm[1])),:]
+        #angls = np.arange(-5,5,0.5)
+        #opt_ang = angle_test_fullHD(diff_crop, cropped_substrateHD, angls, optm[0], optm[1], deriv_type)
+        #exit(0)
+        ixHD, iyHD = cropped_substrateHD.shape[:2]
 
-    #new_mults=[[optm[0]],[optm[1]]]
-    #try:
-    optm, snr_refined = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type,find_rotation=True)
-    #except:
-    #    print('refined search failed')
-    #    return [],[],[]
+        new_mults=refined_mults+np.array([optm[0],optm[1]])[:, np.newaxis]
+    #    new_mults = [np.arange(optm[0] - 0.6, optm[0] + 0.6, 0.1), np.arange(optm[1] - 0.6, optm[1] + 0.6, 0.1)]
+    #    new_mults=[np.arange(optm[0]-0.1,optm[0]+0.1,0.1),np.arange(optm[1]-0.1,optm[1]+0.1,0.1)]
 
-    print('optm1:',optm, ' SNR_refined:',snr_refined)
-    if snr_refined < best_snr:
-        return [],[],[]
+        #new_mults=[[optm[0]],[optm[1]]]
+        try:
+            #optm, snr_refined
+            refined_results = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type,find_rotation=True,method=method)
+        except:
+            print('refined search failed')
+            continue
+            #print('refined search failed')
+            #return [],[],[],0,0
+        snr_refined=refined_results[0,0]
+        optm=refined_results[0,1:]
+        x, y = int(optm[2]),int(optm[3])
+
+        print('optm1:',optm, ' SNR_refined:',snr_refined, ' initial SNR:',best_snr)
+        if snr_refined <= best_snr+0.5:
+            continue
+            #return [],[],[],0,0
+        else:
+            break
        
     cropped_substrateHD = make_derivative(cropped_substrateHD,1,1,deriv_type)
     cropped_substrate = make_derivative(cropped_substrateHD,optm[0], optm[1],deriv_type)
     
     crop_HD = scale_image(med_crop,optm[1],optm[0])
     crop_HD = make_derivative(crop_HD,1,1,deriv_type)
+    i1mxHD, i1myHD = crop_HD.shape[:2]
     
     if ShowPlot:
         fig = plt.figure()
         fig.add_subplot(1, 2, 1)
         plt.imshow(np.abs(diff_crop))
         fig.add_subplot(1, 2, 2)
-        plt.imshow(np.abs(cropped_substrate),vmax=5*np.median(np.abs(cropped_substrate)))
+        plt.imshow(np.abs(cropped_substrate)/np.max(np.abs(cropped_substrate))*100)
         fig.suptitle('Метод производной для загрубленной подложки')
         plt.show()
 
-    if ShowPlot:
+    if False and ShowPlot:
         #tmp=np.abs(cropped_substrateHD)*1.0
         #plt.hist(tmp.flatten(),bins=1000)
         #plt.show()
@@ -677,12 +697,12 @@ def process_crop(crop, crop_file_name, substrate, mults):
         fig.add_subplot(1, 2, 1)
         plt.imshow(np.abs(crop_HD))
         fig.add_subplot(1, 2, 2)
-        plt.imshow(np.abs(cropped_substrateHD),vmax=10*np.median(np.abs(cropped_substrateHD)))
+        plt.imshow(np.abs(cropped_substrateHD),vmax=4*np.median(np.abs(cropped_substrateHD)))
         fig.suptitle('Метод производной для подложки full HD')
         plt.show()
     
 #    crop_coords, cropped_substrate_coords, cs = ccf_repro_images(diff_crop, cropped_substrate, ncut=4)
-    crop_coords, cropped_substrate_coords, cs = ccf_repro_images_fullHD(crop_HD, cropped_substrateHD, ncut=4)
+    crop_coords, cropped_substrate_coords, cs = ccf_repro_images_fullHD(crop_HD, cropped_substrateHD, ncut=4,method=method)
 
 
 
@@ -691,7 +711,8 @@ def process_crop(crop, crop_file_name, substrate, mults):
     substrate_coords= [((tmp_cord[0] + kek1),
                         (tmp_cord[1] + kek2)) for tmp_cord in cropped_substrate_coords]
 
-    return crop_coords, substrate_coords, optm
+#    return crop_coords, substrate_coords, optm,kek1 + (ixHD - x + i1mxHD), kek2 + (iyHD - y + i1myHD)
+    return crop_coords, substrate_coords, optm,kek1 + i1mx//2, kek2 + i1my//2
 
 if __name__ == "__main__":
     # substrate_orig = tifffile.imread('layouts/layout_2021-06-15.tif')   #
@@ -704,34 +725,79 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args.substrate_path)
     substrate_orig = tifffile.imread(args.substrate_path)
-    
+    #sub_mednp.median(substrate_orig))
     substrate=substrate_orig
+    if ('layout_2021-06-15.tif' in args.substrate_path):
+        substrate=np.where(np.abs(substrate)>2000,0,substrate)
+    else:
+        substrate=np.where(np.abs(substrate)>12500,0,substrate)
+    #substrate[:,:,3]=np.where(np.abs(substrate[:,:,3])>200,200,substrate[:,:,3])
+
+    if True:
+        for i in range(4):
+            sub_mean=np.mean(substrate_orig[:,:,i])
+            sub_std=np.std(substrate_orig[:,:,i])
+            sub_max=np.max(substrate_orig[:,:,i])
+            #substrate[:,:,i]=np.where(np.abs(substrate_orig[:,:,i])<sub_mean+5*sub_std,substrate_orig[:,:,i],sub_max)
+            sub_max=12500
+            maxcolor=1000
+            substrate[:,:,i]=substrate[:,:,i]/sub_max*maxcolor
+            #plt.hist(substrate[:,:,i].flatten(),bins=1000,histtype='step')
+        #plt.show()
+    #substrate[:,:,3]=np.where(np.abs(substrate[:,:,3])>200,200,substrate[:,:,3])
+    #plt.hist(substrate[:,:,3].flatten(),bins=1000,histtype='step')
+    #plt.show()
+
+            #substrate[:,:,i]=np.where(np.abs(substrate[:,:,i])==0,maxcolor,substrate[:,:,i])
+            #plt.imshow(substrate[:,:,i])
+            #plt.show()
+
 #    substrate=np.median(substrate_orig,axis=2)
 #    substrate=np.max(substrate_orig,axis=2)
 #    substrate=np.sum(substrate_orig,axis=2)
 #    substrate=substrate_orig[:,:,3]
     
-    if (args.substrate_path == 'layouts/layout_2021-06-15.tif'):
-        substrate=np.where(np.abs(substrate)>2000,0,substrate)
-    else:
-        substrate=np.where(np.abs(substrate)>20000,0,substrate)
+    #if (args.substrate_path == 'layouts/layout_2021-06-15.tif'):
+        #substrate=np.where(np.abs(substrate)>2000,0,substrate)
+        #sub_weig=np.median(substrate[:,:,:3],axis=2)
+        #sub_weig=np.abs(sub_weig-substrate[:,:,0])+np.abs(sub_weig-substrate[:,:,1])+np.abs(sub_weig-substrate[:,:,2])
+        #sub_weig=np.mean(substrate[:,:,:3],axis=2)*sub_weig
+        #sw_const=1000.0
+        #plt.imshow(sub_weig)
+        #plt.show()
+        #plt.hist(sub_weig.flatten(),bins=1000)
+        #plt.show()
+        #sub_weig=np.where(sub_weig<sw_const,(sub_weig/sw_const)**2,1)
+        #plt.imshow(sub_weig)
+        #plt.show()
+
+#        for i in range(4):
+#            substrate[:,:,i]=substrate_orig[:,:,i]*sub_weig[:,:]
+    #else:
+    
     #substrate=(substrate-np.median(substrate))*1.0
-    # substrate=np.where(np.abs(substrate)>10000,10000,substrate)
     
     with rasterio.open(args.substrate_path) as src:
         transform = src.transform
     file_coord = open('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat', 'w')
     print('coordinates_' + args.substrate_path[8:len(args.substrate_path)-4] + '_.dat')
             
-    for i in range(3):
-        substrate[:,:,i] = substrate[:,:,i]/np.max(substrate[:,:,i])*1000
+#    for i in range(4):
+#        substrate[:,:,i] = substrate[:,:,i]/np.max(substrate[:,:,i])*1000
+    print(substrate[-1,-1,:])
     if ShowPlot:
-        plt.imshow(substrate[:,:,:3])
+        plt.imshow(substrate[:,:,0])
+#        plt.imshow(substrate[:,:,:3])
         plt.show()
     
 #    mults=[[5,6,7,8,9,10],[5,6,7,8,9,10]]
-    mults=np.array([np.arange(9,11,0.5),np.arange(5,7,0.5)])
-#    mults=np.array([np.arange(5,10,0.5),np.arange(5,10,0.5)])
+#    mults=np.array([np.arange(10,11,0.5),np.arange(5,6,0.5)])
+#    mults=np.array([np.arange(9,11,0.5),np.arange(5,7,0.5)])
+    mults=np.array([np.arange(5,10.5,0.2),np.arange(5,10.5,0.2)])
+    addmult=0.15
+    addmult_step=0.05
+    refined_mults=[np.arange(-addmult,+addmult,addmult_step),np.arange(-addmult,+addmult,addmult_step)]
+
     #mults=np.arange(5,10,0.4)
     if bSaveLog:
         log_file.write('Layout: {}\n'.format(args.substrate_path))
@@ -746,38 +812,50 @@ if __name__ == "__main__":
             if bSaveLog:
                 log_file.write('crop_file_name={}\n'.format(crop_file_name))
             crop = tifffile.imread(crop_file_name)
-            crop_coords, substrate_coords, optm = process_crop(crop, crop_file_name, substrate, mults)
+            method='ir'
+            crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+            if(abs(x_)+abs(y_)==0):
+                method='rgb'
+                crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+                if(abs(x_)+abs(y_)==0):
+                    continue
             if(len(crop_coords)<3):
-                continue
+                coef_a = 1
+                coef_b = 0
+                coef_c = 0
+                coef_d = 1
+                x_0 = optm[2]+x_
+                y_0 = optm[3]+y_
+            else:
+                # print(crop_coords)
+                # print(substrate_coords)
+    #            x_0, y_0 = substrate_coords[0][0], substrate_coords[0][1]
 
-            # print(crop_coords)
-            # print(substrate_coords)
-#            x_0, y_0 = substrate_coords[0][0], substrate_coords[0][1]
-            if crop_coords == []:
-                continue
-            x_old, y_old = np.array(crop_coords)[:,0], np.array(crop_coords)[:,1]
-            x = np.array(substrate_coords)[:,0]# - x_0
-            y = np.array(substrate_coords)[:,1]# - y_0
-#            print(x_0,y_0)
-            X = np.transpose(np.array([x_old,y_old]))
-            Y = np.transpose(np.array([x,y]))
-            weights = np.ones(Y.shape[0])
-            for iIter in range(10):
-                model = LinearRegression().fit(X, Y,sample_weight=weights)
-                x_0,y_0 = model.intercept_
-                Y1 = model.predict(X)
-                #print('max o-c:',np.max(np.sum(np.abs(Y1-Y),axis=1)*weights))
-                weights = 1/(1+np.sum(np.abs(Y1-Y),axis=1)**2)
-                #plt.plot(np.sum(np.abs(Y1-Y),axis=1),'.-')
-                #plt.show()
+                x_old, y_old = np.array(crop_coords)[:,0], np.array(crop_coords)[:,1]
+                x = np.array(substrate_coords)[:,0]# - x_0
+                y = np.array(substrate_coords)[:,1]# - y_0
+    #            print(x_0,y_0)
+                X = np.transpose(np.array([x_old,y_old]))
+                Y = np.transpose(np.array([x,y]))
+                weights = np.ones(Y.shape[0])
+                print('old x_0, y_0:',x_,y_)
+                for iIter in range(10):
+                    model = LinearRegression().fit(X, Y,sample_weight=weights)
+                    x_0,y_0 = model.intercept_
+                    Y1 = model.predict(X)
+                    #print('max o-c:',np.max(np.sum(np.abs(Y1-Y),axis=1)*weights))
+                    weights = 1/(1+np.sum(np.abs(Y1-Y),axis=1)**2)
+                    #plt.plot(np.sum(np.abs(Y1-Y),axis=1),'.-')
+                    #plt.show()
+                print('new x_0, y_0:',x_0,y_0)
 
 
-            print(model.intercept_)
-            print('coef:', model.coef_)
-            coef_a = model.coef_[0][0]
-            coef_b = model.coef_[0][1]
-            coef_c = model.coef_[1][0]
-            coef_d = model.coef_[1][1]
+                print(model.intercept_)
+                print('coef:', model.coef_)
+                coef_a = model.coef_[0][0]
+                coef_b = model.coef_[0][1]
+                coef_c = model.coef_[1][0]
+                coef_d = model.coef_[1][1]
 
             print ('a:{:.1f}, d:{:.1f}'.format(coef_a, coef_d))
             print(optm)
