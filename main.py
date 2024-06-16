@@ -72,7 +72,8 @@ def run_main_process(layout_name: str, input_file_path: str, taskid: str):
 @app.post("/process_image_api/{layout_name}")
 # async def main_process(layout_name: str, file: UploadFile = File(...), background_tasks: BackgroundTasks):
 async def main_process(layout_name: str, file: UploadFile, background_tasks: BackgroundTasks):
-    input_file_path = f"temp_{file.filename}"
+    # input_file_path = f"temp_{file.filename}" . #TODO: delete
+    input_file_path = file.filename
     
     with open(input_file_path, "wb") as buffer:
         buffer.write(await file.read())
@@ -114,8 +115,5 @@ async def download_coords(filename: str):
             else:
                 raise HTTPException(status_code=404, detail="No data found in the file")
 
-            # rows = list(reader)
-            # return JSONResponse(content=rows)
-            # return JSONResponse(content=reader)
     else:
         raise HTTPException(status_code=404, detail="File not found")
