@@ -1,5 +1,3 @@
-import subprocess
-import argparse
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
@@ -7,8 +5,7 @@ import os
 import csv
 import tempfile
 from datetime import datetime, timezone
-# import uuid
-from pixel_repair_report import process_image_file
+from process_image import main_process_func
 
 app = FastAPI()
 
@@ -35,47 +32,17 @@ layouts = scan_layouts(LAYOUTS_DIR)
 async def get_layouts():
     return layouts
 
-@app.post("/repair_pixels/")
-async def repair_pixels(file: UploadFile = File(...)):
-    with tempfile.NamedTemporaryFile(delete=False) as input_file:
-        input_file_path = input_file.name
-        input_file.write(await file.read())
-    
-    output_file_path = f"fixed_{file.filename}"
-    hot_pixel_report = process_image_file(input_file_path, output_file_path)
-
-    os.remove(input_file_path)
-
-    report_file_path = f"report_{file.filename}.txt"
-    with open(report_file_path, "w") as report_file:
-        report_file.write("Отчет о битых пикселях:\n")
-        for line in hot_pixel_report:
-            report_file.write(line + "\n")
-
-    return {
-        "fixed_image": output_file_path,
-        "report": report_file_path
-    }
-
-@app.get("/download_fixed_image/{filename}")
-async def download_fixed_image(filename: str):
-    return FileResponse(filename)
-
-@app.get("/download_report/{filename}")
-async def download_report(filename: str):
-    return FileResponse(filename)
-
 def generate_task_id():
     timestamp = datetime.now(timezone.utc).timestamp()
-    # unique_component = uuid.uuid4().hex  # Генерируем уникальный UUID
-    task_id = f"{int(timestamp * 1_000_000)}"  # _{unique_component}"  # Умножаем на 1_000_000 для получения микросекундной точности и добавляем уникальный компонент
+    task_id = f"{int(timestamp * 1_000_000)}"  # Умножаем на 1_000_000 для получения микросекундной точности
     return task_id
 
 def run_main_process(layout_name: str, input_file_path: str, taskid: str):
     try:
-        subprocess.run(["python", "main.py", "--crop_name", input_file_path, "--layout_name", layout_name], check=True)
+        layout_name = os.path.join(LAYOUTS_DIR, layout_name)
+        main_process_func(layout_name, input_file_path, taskid)
         task_status[taskid] = "completed"
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         task_status[taskid] = "failed"
         print(f"Error processing {taskid}: {e}")
     finally:
@@ -87,7 +54,6 @@ async def main_process(layout_name: str, file: UploadFile, background_tasks: Bac
         input_file_path = input_file.name
         input_file.write(await file.read())
     
-    layout_name = os.path.join(LAYOUTS_DIR, layout_name)
     taskid = generate_task_id()
     
     # Изначально устанавливаем статус задачи как "in_progress"
@@ -109,8 +75,7 @@ async def get_task_status(taskid: str):
 
 @app.get("/download_coords/{taskid}")
 async def download_coords(taskid: str):
-    # filename = 'coords_' + taskid + '.csv'
-    filename = "coords.csv"
+    filename = f"coords_{taskid}.csv"
     file_path = os.path.join(os.getcwd(), filename)
     if os.path.exists(file_path):
         with open(file_path, newline='') as csvfile:
