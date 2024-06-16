@@ -108,8 +108,14 @@ async def download_coords(filename: str):
     if os.path.exists(file_path):
         with open(file_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile, delimiter=';')
+            row = next(reader, None)
+            if row:
+                return JSONResponse(content=row)
+            else:
+                raise HTTPException(status_code=404, detail="No data found in the file")
+
             # rows = list(reader)
             # return JSONResponse(content=rows)
-            return JSONResponse(content=reader)
+            # return JSONResponse(content=reader)
     else:
         raise HTTPException(status_code=404, detail="File not found")
