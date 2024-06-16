@@ -887,10 +887,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
         file_coord.flush()
     
-    super_result["ul"] = str(coords[0][1]) + '_' + str(coords[0][0])
-    super_result["ur"] = str(coords[3][1]) + '_' + str(coords[3][0])
-    super_result["br"] = str(coords[2][1]) + '_' + str(coords[2][0])
-    super_result["bl"] = str(coords[1][1]) + '_' + str(coords[1][0])
+    super_result["ul"] = str(int(coords[0][0]*1000)/1000) + '_' + str(int(coords[0][1]*1000)/1000)
+    super_result["ur"] = str(int(coords[3][0]*1000)/1000) + '_' + str(int(coords[3][1]*1000)/1000)
+    super_result["br"] = str(int(coords[2][0]*1000)/1000) + '_' + str(int(coords[2][1]*1000)/1000)
+    super_result["bl"] = str(int(coords[1][0]*1000)/1000) + '_' + str(int(coords[1][1]*1000)/1000)
     
     super_result["crs"] = 'EPSG:32637'
     
@@ -966,10 +966,10 @@ if __name__ == "__main__":
     print(substrate_path)
     
     substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
-    # for i in range(0,5):
-    #     for j in range(0,4):
-    for i in range(0,1):
-        for j in range(0,1):
+    for i in range(0,5):
+        for j in range(0,4):
+    # for i in range(0,1):
+    #     for j in range(0,1):
     #for i in range(0,8):
     #    for j in range(0,5):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
