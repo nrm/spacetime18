@@ -87,6 +87,8 @@ async def main_process(layout_name: str, file: UploadFile, background_tasks: Bac
         input_file_path = input_file.name
         input_file.write(await file.read())
     
+
+    layout_name = os.path.join(LAYOUTS_DIR, layout_name)
     taskid = generate_task_id()
     
     # Изначально устанавливаем статус задачи как "in_progress"
