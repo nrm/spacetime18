@@ -714,7 +714,137 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
 
 #    return crop_coords, substrate_coords, optm,kek1 + (ixHD - x + i1mxHD), kek2 + (iyHD - y + i1myHD)
 #    return crop_coords, substrate_coords, optm,kek1 + i1mx//2, kek2 + i1my//2
-    return crop_coords, substrate_coords, optm,kek1 + (ixHD - x - i1mxHD), kek2 + (iyHD - y - i1myHD)
+    
+    # return crop_coords, substrate_coords, optm,kek1 + (ixHD - x - i1mxHD), kek2 + (iyHD - y - i1myHD)
+    
+    # crop_coords = []
+
+    x_sdvig = (iyHD - y - i1myHD)
+    y_sdvig = (ixHD - x - i1mxHD)
+
+    # print("do:", (x_sdvig, y_sdvig))
+    # print("params", (optm[1], optm[0], optm[4]))
+    a, b, c, d, x_tmp_0, y_tmp_0 = get_abcd_from_mults_angl_xy0(optm[1], optm[0], optm[4], 0, 0)
+    det_A = a*d-b*c
+    y_sdvig, x_sdvig = ((-c/det_A*x_sdvig + a/det_A*y_sdvig),
+     ( d/det_A*x_sdvig - b/det_A*y_sdvig))
+    # print("posle:", (x_sdvig, y_sdvig))
+    
+    return crop_coords, substrate_coords, optm,kek1 + y_sdvig, kek2 + x_sdvig
+    
+
+def get_abcd_from_mults_angl_xy0(mult_x,mult_y,angle, x0, y0):
+#     a = 0
+#     if mult_x:
+    a = mult_x
+#     d = 0
+#     if mult_y:
+    d = mult_y
+    
+    M = np.array([
+        [ a, 0., 0.],
+        [0., d , 0.],
+        [0., 0., 1.]
+    ])
+    
+    M_inv = np.array([
+        [ 1./a, 0., 0.],
+        [0., 1./d , 0.],
+        [0., 0., 1.]
+    ])
+    
+    
+    X_Y_vec = np.array([
+        [x0],
+        [y0],
+        [1.]
+    ])
+    
+    x0,y0 = (M_inv@X_Y_vec).T[0][:2]
+#     print (x0,y0)
+    
+    M_pr = np.array([
+        [1., 0., x0],
+        [0., 1., y0],
+        [0., 0., 1.]
+    ])
+
+    phi = angle * np.pi / 180.
+    Povorot = np.array([
+        [ np.cos(phi), np.sin(phi), 0.],
+        [-np.sin(phi), np.cos(phi), 0.],
+        [0.,       0.,              1.]
+    ])
+
+    M_obr = np.array([
+        [1., 0., -x0],
+        [0., 1., -y0],
+        [0., 0.,  1.]
+    ])
+    
+
+#     itog = M_pr@M@M_obr@M_pr@Povorot@M_obr
+    itog = M@M_pr@Povorot@M_obr
+    
+    a  = itog[0][0]
+    b  = itog[0][1]
+    c  = itog[1][0]
+    d  = itog[1][1]
+    x0 = itog[0][2]
+    y0 = itog[1][2]
+    
+    return (a, b, c, d, x0, y0)
+
+# вращение вокруг центра с почти допиленным обрезанием
+def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15):
+    y_range, x_range = F.shape[0:2]
+    
+    a, b, c, d, x0, y0 = get_abcd_from_mults_angl_xy0(mult_x, mult_y, angle, x_range//2, y_range//2)
+#     a, b, c, d, x0, y0 = get_abcd_from_mults_angl_xy0(mult_x, mult_y, angle, 0, 0)
+#     print(a, b, c, d, x0, y0)
+    
+    det_A = a*d-b*c
+        
+    tmp=F[0][0]
+    G = np.zeros(
+#         (F.shape[0],
+#         F.shape[1])
+        (max(min(int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0)), y_range),1),
+         max(min(int( max(d/det_A,0)*x_range - min(b/det_A,0)*y_range - ( d/det_A*x0 - b/det_A*y0)), x_range),1))
+#         (int(-min(c/det_A,0)*sh1 + max(a/det_A,0)*sh0 - (-c/det_A*x0 +a/det_A*y0)),
+#         int(max(d/det_A, 0)*sh1 - min(b/det_A,0)*sh0 - (d/det_A*x0 -b/det_A*y0)))
+        , dtype=type(tmp)
+#         (max(min(int(F.shape[0]*a/det_A+F.shape[1]*b/det_A + x0), F.shape[0]),0),
+#          max(min(int(F.shape[0]*c/det_A+F.shape[1]*d/det_A + y0), F.shape[1]),0)), dtype=type(tmp)
+    )
+    
+    u_range, v_range = G.shape
+    
+    rows, cols = F.shape[0:2]
+    
+    # Создаем сетку индексов
+    u_indices, v_indices = np.meshgrid(np.arange(u_range), np.arange(v_range), indexing='ij')
+    
+    # Вычисляем новые индексы
+#     tmp_new_u_indices = np.round(( a * (u_indices + x0) + b * (v_indices + y0)) / det_A ).astype(int)
+#     tmp_new_v_indices = np.round(( c * (u_indices + x0) + d * (v_indices + y0)) / det_A ).astype(int)
+    tmp_new_v_indices = np.round( a * v_indices + b * u_indices + x0).astype(int)
+    tmp_new_u_indices = np.round( c * v_indices + d * u_indices + y0).astype(int)
+    
+    # Ограничиваем индексы, чтобы они не выходили за границы массива F
+    new_v_indices = np.clip(tmp_new_v_indices, 0, cols - 1)
+    new_u_indices = np.clip(tmp_new_u_indices, 0, rows - 1)
+    
+    # Формируем выходной массив G
+#     G[u_indices, v_indices] = F[new_u_indices, new_v_indices, 0]
+    G[u_indices, v_indices] = F[new_u_indices, new_v_indices]
+        
+    G[np.where(tmp_new_u_indices < 0)] = 0
+    G[np.where(tmp_new_v_indices < 0)] = 0
+    G[np.where(tmp_new_u_indices >= rows)] = 0
+    G[np.where(tmp_new_v_indices >= cols)] = 0
+    
+    return G
 
 def prepare_substrate(substrate_path):
     if not os.path.exists('1_20_geotiff'):
@@ -823,6 +953,19 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         coef_d = 1
         x_0 = optm[2]+x_
         y_0 = optm[3]+y_
+        
+        # print(coef_a,coef_b,coef_c,coef_d, x_0, y_0)
+
+        # a, b, c, d, x_tmp_0, y_tmp_0 = get_abcd_from_mults_angl_xy0(optm[1], optm[0], optm[4], optm[3], optm[2])
+
+        # print(a/optm[1], b/optm[1], c/optm[0], d/optm[0], x_tmp_0, y_tmp_0)
+
+        # coef_a = d/optm[0]
+        # coef_b = b/optm[0]
+        # coef_c = c/optm[1]
+        # coef_d = a/optm[1]
+        # x_0 = optm[2]+x_+y_tmp_0
+        # y_0 = optm[3]+y_+x_tmp_0
     else:
         x_old, y_old = np.array(crop_coords)[:,0], np.array(crop_coords)[:,1]
         x = np.array(substrate_coords)[:,0]
@@ -976,10 +1119,10 @@ if __name__ == "__main__":
     print(substrate_path)
     
     substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
-    for i in range(0,5):
-        for j in range(0,4):
-    # for i in range(0,1):
-    #     for j in range(0,1):
+    # for i in range(0,5):
+    #     for j in range(0,4):
+    for i in range(1,2):
+        for j in range(1,2):
     #for i in range(0,8):
     #    for j in range(0,5):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
