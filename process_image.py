@@ -767,7 +767,8 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
     result_data.append(result)
     
-    with open('coords_' + outputname, 'w', newline='') as f:
+    # with open('coords_' + outputname, 'w', newline='') as f:
+    with open(outputname, 'w', newline='') as f:
         writer = csv.DictWriter(
             f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
         writer.writeheader()
