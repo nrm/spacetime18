@@ -1,10 +1,12 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import os
+import csv
 from pixel_repair_report import process_image_file
 from process_image import main_process_func
 from datetime import datetime, timezone
+
 
 app = FastAPI()
 
@@ -101,8 +103,12 @@ async def get_task_status(taskid: str):
 
 @app.get("/download_coords/{filename}")
 async def download_coords(filename: str):
+    filename = 'coords_' + filename
     file_path = os.path.join(os.getcwd(), filename)
     if os.path.exists(file_path):
-        return FileResponse(file_path, media_type='text/csv', filename=filename)
+        with open(file_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=';')
+            rows = list(reader)
+            return JSONResponse(content=rows)
     else:
         raise HTTPException(status_code=404, detail="File not found")
