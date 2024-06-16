@@ -3,8 +3,10 @@ from process_image import main_process_func
 from datetime import datetime, timezone
 
 def main(crop_name, layout_name):
-    unix_time = datetime.now(timezone.utc).timestamp() * 1000
-    taskid = f"{int(unix_time)}"
+    # unix_time = datetime.now(timezone.utc).timestamp() * 1000
+    # taskid = f"{int(unix_time)}"
+
+    taskid = "coords.csv"
 
     main_process_func(layout_name, crop_name, taskid)
 
