@@ -28,6 +28,25 @@
 
 ```sh
 curl -X GET "http://127.0.0.1:8000/layouts/"
+
+[
+  {
+    "name": "layout_2021-08-16.tif",
+    "description": "Description of layout_2021-08-16.tif"
+  },
+  {
+    "name": "layout_2021-06-15.tif",
+    "description": "Description of layout_2021-06-15.tif"
+  },
+  {
+    "name": "layout_2021-10-10.tif",
+    "description": "Description of layout_2021-10-10.tif"
+  },
+  {
+    "name": "layout_2022-03-17.tif",
+    "description": "Description of layout_2022-03-17.tif"
+  }
+]
 ```
 
 Пример Postman
@@ -46,7 +65,12 @@ curl -X GET "http://127.0.0.1:8000/layouts/"
 Пример curl
 
 ```sh
-curl -X POST "http://127.0.0.1:8000/repair_pixels/" -F "file=@path/to/your/image.tif"
+curl -X POST "http://127.0.0.1:8000/repair_pixels/" -F "file=@path/to/your/crop_0_0_0000.tif"
+
+{
+  "fixed_image": "fixed_crop_0_0_0000.tif",
+  "report": "report_crop_0_0_0000.tif.txt"
+}
 ```
 
 Пример Postman
@@ -108,6 +132,11 @@ curl -X GET "http://127.0.0.1:8000/download_report/report_image.txt" -o report_i
 
 ```sh
 curl -X POST "http://127.0.0.1:8000/process_image_api/layout_name" -F "file=@path/to/your/image.tif"
+
+{
+  "message": "Task received, processing in background",
+  "taskid": "1718564451849337"
+}
 ```
 
 Пример Postman
@@ -129,6 +158,11 @@ curl -X POST "http://127.0.0.1:8000/process_image_api/layout_name" -F "file=@pat
 
 ```sh
 curl -X GET "http://127.0.0.1:8000/task_status/123456789"
+
+{
+  "taskid": "1718564451849337",
+  "status": "in_progress"
+}
 ```
 
 Пример Postman
@@ -148,6 +182,18 @@ curl -X GET "http://127.0.0.1:8000/task_status/123456789"
 
 ```sh
 curl -X GET "http://127.0.0.1:8000/download_coords/123456789"
+
+{
+  "layout_name": "layout_2021-10-10.tif",
+  "crop_name": "crop_0_2_0000.tif",
+  "ul": "427102.709_5796443.207",
+  "ur": "438664.31_5796165.846",
+  "br": "438514.184_5777348.5",
+  "bl": "426952.583_5777625.86",
+  "crs": "EPSG:32637",
+  "start": "2024-06-16T19:00:51",
+  "end": "2024-06-16T19:02:59"
+}
 ```
 
 Пример Postman

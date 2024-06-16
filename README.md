@@ -83,7 +83,11 @@ python main.py --crop_name /data/crops/crop_0_2_0000.tif --layout_name /data/lay
 
 ## Использование API версии (в разработке)
 
-## Переменные окружения
+### Установка зависимостей
+
+Установите docker и docker-compose как описано в официальной документации [Docker](https://docs.docker.com/compose/install/).
+
+### Переменные окружения
 
 В Dockerfile и docker-compose.yml, мы устанавливаем переменную окружения LAYOUTS_DIR, которая предоставляет путь к директории с подложками и используется приложением внутри контейнера.
 
