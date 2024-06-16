@@ -95,6 +95,14 @@ async def get_task_status(taskid: str):
     else:
         raise HTTPException(status_code=404, detail="Task not found")
 
+# @app.get("/download_coords/{filename}")
+# async def download_coords(filename: str):
+#     return FileResponse('coords_' + filename)
+
 @app.get("/download_coords/{filename}")
 async def download_coords(filename: str):
-    return FileResponse('coords_' + filename)
+    file_path = os.path.join(os.getcwd(), filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type='text/csv', filename=filename)
+    else:
+        raise HTTPException(status_code=404, detail="File not found")
