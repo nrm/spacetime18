@@ -806,7 +806,15 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         if(abs(x_)+abs(y_)==0):
             # continue
             # pass
-            return None
+            super_result["ul"] = str(0) + '_' + str(0)
+            super_result["ur"] = str(0) + '_' + str(0)
+            super_result["br"] = str(0) + '_' + str(0)
+            super_result["bl"] = str(0) + '_' + str(0)
+            
+            super_result["crs"] = 'EPSG:32637'
+            
+            super_result["start"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")            
+            return super_result
             # TODO
     if(len(crop_coords)<3):
         coef_a = 1
