@@ -1,169 +1,159 @@
 # Документация API
 
-## Оглавление
+Оглавление
 
 - [Документация API](#документация-api)
-  - [Оглавление](#оглавление)
-  - [1. Обработать изображение](#1-обработать-изображение)
-  - [2. Скачать исправленное изображение](#2-скачать-исправленное-изображение)
-  - [3. Скачать отчет](#3-скачать-отчет)
-  - [5. Назначить активную подложку](#5-назначить-активную-подложку)
-  - [6. Получить активную подложку](#6-получить-активную-подложку)
-  - [Пример использования всех эндпоинтов](#пример-использования-всех-эндпоинтов)
+  - [Endpoints](#endpoints)
+    - [Get Layouts](#get-layouts)
+    - [Repair Pixels](#repair-pixels)
+    - [Download Fixed Image](#download-fixed-image)
+    - [Download Report](#download-report)
+    - [Process Image with Layout](#process-image-with-layout)
+    - [Get Task Status](#get-task-status)
+    - [Download Coordinates](#download-coordinates)
 
 
-## 1. Обработать изображение
+Этот API предоставляет Endpoints для сканирования директорий на наличие файлов подложек, исправления пикселей в загруженных изображениях, обработки изображений с использованием заданных подложек и управления статусами задач. Ниже приведены детали каждой Endpoint вместе с примерами использования в curl и Postman.
 
-- Endpoint: /process_image/
-- Method: POST
-- Description: Загружает изображение и возвращает исправленное изображение и отчет о битых пикселях.
+## Endpoints
 
-Request:
+---
+### Get Layouts
 
-    file: Файл изображения (формат UploadFile).
+    Endpoint: /layouts/
+    Method: GET
+    Описание: Возвращает список файлов подложек, доступных в указанной директории.
 
-Response:
-
-    fixed_image: Путь к исправленному изображению.
-    report: Путь к отчету о битых пикселях.
-
-Пример вызова с помощью curl:
+Пример curl
 
 ```sh
-curl -X POST "http://localhost:8000/process_image/" -F "file=@/path/to/your/image.tif"
+curl -X GET "http://127.0.0.1:8000/layouts/"
 ```
 
-## 2. Скачать исправленное изображение
+Пример Postman
 
-- Endpoint: /download_fixed_image/{filename}
-- Method: GET
-- Description: Возвращает исправленное изображение по имени файла.
+    Создайте новый GET Request.
+    Установите URL на http://127.0.0.1:8000/layouts/.
+    Отправьте Request.
 
-Request Parameters:
+---
+### Repair Pixels
 
-    filename: Имя файла исправленного изображения.
+    Endpoint: /repair_pixels/
+    Method: POST
+    Описание: Загружает файл изображения, исправляет его пиксели и возвращает пути к исправленному изображению и отчету.
 
-Response:
-
-    Файл исправленного изображения.
-
-Пример вызова с помощью curl:
+Пример curl
 
 ```sh
-curl -O "http://localhost:8000/download_fixed_image/fixed_image.tif"
+curl -X POST "http://127.0.0.1:8000/repair_pixels/" -F "file=@path/to/your/image.tif"
 ```
 
-## 3. Скачать отчет
+Пример Postman
 
-- Endpoint: /download_report/{filename}
-- Method: GET
-- Description: Возвращает отчет о битых пикселях по имени файла.
+    Создайте новый POST Request.
+    Установите URL на http://127.0.0.1:8000/repair_pixels/.
+    Вкладка "Body", выберите "form-data".
+    Добавьте новый ключ "file", выберите тип "File" и выберите ваш файл изображения.
+    Отправьте Request.
 
-Request Parameters:
+---
+### Download Fixed Image
 
-    filename: Имя файла отчета.
+    Endpoint: /download_fixed_image/{filename}
+    Method: GET
+    Описание: Скачивает исправленный файл изображения по имени файла.
 
-Response:
-
-    Файл отчета о битых пикселях.
-
-Пример вызова с помощью curl:
+Пример curl
 
 ```sh
-curl -O "http://localhost:8000/download_report/report_image.tif.txt"
+curl -X GET "http://127.0.0.1:8000/download_fixed_image/fixed_image.tif" -o fixed_image.tif
 ```
 
-4. Получить список подложек
+Пример Postman
 
-- Endpoint: /layouts/
-- Method: GET
-- Description: Возвращает список доступных подложек.
+    Создайте новый GET Request.
+    Установите URL на http://127.0.0.1:8000/download_fixed_image/fixed_image.tif.
+    Отправьте Request.
+    Файл будет загружен.
 
-Request: None
+---
+### Download Report
 
-Response:
+    Endpoint: /download_report/{filename}
+    Method: GET
+    Описание: Скачивает файл отчета по имени файла.
 
-    Список подложек (массив объектов, каждый из которых содержит name и description).
-
-Пример вызова с помощью curl:
+Пример curl
 
 ```sh
-curl "http://localhost:8000/layouts/"
+curl -X GET "http://127.0.0.1:8000/download_report/report_image.txt" -o report_image.txt
 ```
 
-## 5. Назначить активную подложку
+Пример Postman
 
-- Endpoint: /layouts/active/{layout_name}
-- Method: PUT
-- Description: Назначает подложку активной по имени.
+    Создайте новый GET Request.
+    Установите URL на http://127.0.0.1:8000/download_report/report_image.txt.
+    Отправьте Request.
+    Файл будет загружен.
 
-Request Parameters:
+---
+### Process Image with Layout
 
-    layout_name: Имя подложки.
+    Endpoint: /process_image_api/{layout_name}
+    Method: POST
+    Описание: Загружает файл изображения для обработки с использованием указанной подложки. Обработка выполняется в фоновом режиме.
 
-Response:
-
-    Сообщение о том, что подложка назначена активной.
-
-Пример вызова с помощью curl:
+Пример curl
 
 ```sh
-curl -X PUT "http://localhost:8000/layouts/active/layout1"
+curl -X POST "http://127.0.0.1:8000/process_image_api/layout_name" -F "file=@path/to/your/image.tif"
 ```
 
-## 6. Получить активную подложку
+Пример Postman
 
-- Endpoint: /layouts/active/
-- Method: GET
-- Description: Возвращает текущую активную подложку.
+    Создайте новый POST Request.
+    Установите URL на http://127.0.0.1:8000/process_image_api/layout_name.
+    Вкладка "Body", выберите "form-data".
+    Добавьте новый ключ "file", выберите тип "File" и выберите ваш файл изображения.
+    Отправьте Request.
 
-Request: None
+---
+### Get Task Status
 
-Response:
+    Endpoint: /task_status/{taskid}
+    Method: GET
+    Описание: Возвращает статус фоновой задачи по идентификатору задачи.
 
-    Активная подложка (объект, содержащий name и description).
-
-Пример вызова с помощью curl:
+Пример curl
 
 ```sh
-curl "http://localhost:8000/layouts/active/"
+curl -X GET "http://127.0.0.1:8000/task_status/123456789"
 ```
 
-## Пример использования всех эндпоинтов
+Пример Postman
 
-Загрузить изображение для обработки:
+    Создайте новый GET Request.
+    Установите URL на http://127.0.0.1:8000/task_status/123456789.
+    Отправьте Request.
+
+---
+### Download Coordinates
+
+    Endpoint: /download_coords/{taskid}
+    Method: GET
+    Описание: Скачивает файл CSV с координатами по идентификатору задачи и возвращает его содержимое в формате JSON.
+
+Пример curl
 
 ```sh
-curl -X POST "http://localhost:8000/process_image/" -F "file=@/path/to/your/image.tif"
+curl -X GET "http://127.0.0.1:8000/download_coords/123456789"
 ```
 
-Скачать исправленное изображение:
+Пример Postman
 
-```sh
-curl -O "http://localhost:8000/download_fixed_image/fixed_image.tif"
-```
+    Создайте новый GET Request.
+    Установите URL на http://127.0.0.1:8000/download_coords/123456789.
+    Отправьте Request.
 
-Скачать отчет о битых пикселях:
-
-```sh
-curl -O "http://localhost:8000/download_report/report_image.tif.txt"
-```
-
-Получить список подложек:
-
-```sh
-curl "http://localhost:8000/layouts/"
-```
-
-Назначить активную подложку:
-
-```sh
-curl -X PUT "http://localhost:8000/layouts/active/layout1"
-```
-
-Получить текущую активную подложку:
-
-```sh
-curl "http://localhost:8000/layouts/active/"
-```
-
+Эта документация охватывает основные Endpoints API с примерами для использования в curl и Postman, что облегчает тестирование и интеграцию.
