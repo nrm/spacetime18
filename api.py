@@ -75,7 +75,8 @@ async def get_task_status(taskid: str):
 
 @app.get("/download_coords/{taskid}")
 async def download_coords(taskid: str):
-    filename = f"coords_{taskid}.csv"
+    # filename = f"coords_{taskid}.csv"
+    filename = taskid
     file_path = os.path.join(os.getcwd(), filename)
     if os.path.exists(file_path):
         with open(file_path, newline='') as csvfile:
