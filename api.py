@@ -87,7 +87,6 @@ async def main_process(layout_name: str, file: UploadFile, background_tasks: Bac
         input_file_path = input_file.name
         input_file.write(await file.read())
     
-
     layout_name = os.path.join(LAYOUTS_DIR, layout_name)
     taskid = generate_task_id()
     
@@ -110,7 +109,8 @@ async def get_task_status(taskid: str):
 
 @app.get("/download_coords/{taskid}")
 async def download_coords(taskid: str):
-    filename = 'coords_' + taskid + '.csv'
+    # filename = 'coords_' + taskid + '.csv'
+    filename = "coords.csv"
     file_path = os.path.join(os.getcwd(), filename)
     if os.path.exists(file_path):
         with open(file_path, newline='') as csvfile:
