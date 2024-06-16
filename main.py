@@ -1,18 +1,18 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import os
 from pixel_repair_report import process_image_file
 from process_image import main_process_func
+from datetime import datetime, timezone
 
 app = FastAPI()
 
 # Директория, в которой будут сканироваться подложки
 LAYOUTS_DIR = os.getenv("LAYOUTS_DIR", "/layouts")
 
-# Хранение подложек в памяти
-layouts = []
-active_layout = None
+# Хранение статусов задач
+task_status = {}
 
 class Layout(BaseModel):
     name: str
@@ -26,6 +26,10 @@ def scan_layouts(directory: str):
 
 # Сканирование директории при запуске приложения
 layouts = scan_layouts(LAYOUTS_DIR)
+
+@app.get("/layouts/")
+async def get_layouts():
+    return layouts
 
 @app.post("/process_image/")
 async def process_image(file: UploadFile = File(...)):
@@ -58,44 +62,39 @@ async def download_fixed_image(filename: str):
 async def download_report(filename: str):
     return FileResponse(filename)
 
-@app.get("/layouts/")
-async def get_layouts():
-    return layouts
-
-@app.put("/layouts/active/{layout_name}")
-async def set_active_layout(layout_name: str):
-    global active_layout
-    for layout in layouts:
-        if layout["name"] == layout_name:
-            active_layout = layout
-            return {"message": f"Layout '{layout_name}' is now active."}
-    raise HTTPException(status_code=404, detail="Layout not found")
-
-@app.get("/layouts/active/")
-async def get_active_layout():
-    if active_layout:
-        return active_layout
-    raise HTTPException(status_code=404, detail="No active layout set")
+def run_main_process(layout_name: str, input_file_path: str, taskid: str):
+    layout_name = os.path.join(LAYOUTS_DIR, layout_name)
+    main_process_func(layout_name, input_file_path, taskid)
+    task_status[taskid] = "completed"
 
 @app.post("/process_image_api/{layout_name}")
-async def main_process(layout_name: str, file: UploadFile = File(...)):
+# async def main_process(layout_name: str, file: UploadFile = File(...), background_tasks: BackgroundTasks):
+async def main_process(layout_name: str, file: UploadFile, background_tasks: BackgroundTasks):
     input_file_path = f"temp_{file.filename}"
     
     with open(input_file_path, "wb") as buffer:
         buffer.write(await file.read())
     
-    from datetime import datetime, timezone
-    unix_time = datetime.now(timezone.utc).timestamp()*1000
+    unix_time = datetime.now(timezone.utc).timestamp() * 1000
+    taskid = f"{unix_time}.csv"
     
-    taskid =str(unix_time) + '.csv'
-    
-    # main_process_func(main_process_func, input_file_path, taskid)
-    main_process_func(layout_name, input_file_path, taskid)
+    # Изначально устанавливаем статус задачи как "in_progress"
+    task_status[taskid] = "in_progress"
+    background_tasks.add_task(run_main_process, layout_name, input_file_path, taskid)
 
     return {
+        "message": "Task received, processing in background",
         "taskid": taskid
     }
 
+@app.get("/task_status/{taskid}")
+async def get_task_status(taskid: str):
+    status = task_status.get(taskid)
+    if status:
+        return {"taskid": taskid, "status": status}
+    else:
+        raise HTTPException(status_code=404, detail="Task not found")
+
 @app.get("/download_coords/{filename}")
 async def download_coords(filename: str):
-    return FileResponse(filename)
+    return FileResponse('coords_' + filename)
