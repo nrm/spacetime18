@@ -18,5 +18,6 @@ deploy:
     - git pull origin master_in_progress
     - if ! git remote | grep github; then git remote add github git@github.com:nrm/spacetime18.git; fi
     - git push --force github master_in_progress
+  when: manual
   only:
     - master_in_progress
