@@ -383,8 +383,10 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
         if method=='rgb':
             maxcoin=coins[maxcoin_arg,3]
             ccf = np.sum(ccf[:,:,:3],axis=2)
-            x = int(coins[maxcoin_arg,0])
-            y = int(coins[maxcoin_arg,1])
+            #x = int(coins[maxcoin_arg,0])
+            #y = int(coins[maxcoin_arg,1])
+            x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+            maxcoin=0
         if method=='ir':
             maxcoin = 0
             ccf = ccf[:,:,3]
@@ -804,7 +806,15 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         if(abs(x_)+abs(y_)==0):
             # continue
             # pass
-            return None
+            super_result["ul"] = str(0) + '_' + str(0)
+            super_result["ur"] = str(0) + '_' + str(0)
+            super_result["br"] = str(0) + '_' + str(0)
+            super_result["bl"] = str(0) + '_' + str(0)
+            
+            super_result["crs"] = 'EPSG:32637'
+            
+            super_result["start"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")            
+            return super_result
             # TODO
     if(len(crop_coords)<3):
         coef_a = 1
@@ -887,10 +897,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
         file_coord.flush()
     
-    super_result["ul"] = str(coords[0][1]) + '_' + str(coords[0][0])
-    super_result["ur"] = str(coords[3][1]) + '_' + str(coords[3][0])
-    super_result["br"] = str(coords[2][1]) + '_' + str(coords[2][0])
-    super_result["bl"] = str(coords[1][1]) + '_' + str(coords[1][0])
+    super_result["ul"] = str(int(coords[0][0]*1000)/1000) + '_' + str(int(coords[0][1]*1000)/1000)
+    super_result["ur"] = str(int(coords[3][0]*1000)/1000) + '_' + str(int(coords[3][1]*1000)/1000)
+    super_result["br"] = str(int(coords[2][0]*1000)/1000) + '_' + str(int(coords[2][1]*1000)/1000)
+    super_result["bl"] = str(int(coords[1][0]*1000)/1000) + '_' + str(int(coords[1][1]*1000)/1000)
     
     super_result["crs"] = 'EPSG:32637'
     
@@ -966,10 +976,10 @@ if __name__ == "__main__":
     print(substrate_path)
     
     substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
-    # for i in range(0,5):
-    #     for j in range(0,4):
-    for i in range(0,1):
-        for j in range(0,1):
+    for i in range(0,5):
+        for j in range(0,4):
+    # for i in range(0,1):
+    #     for j in range(0,1):
     #for i in range(0,8):
     #    for j in range(0,5):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
