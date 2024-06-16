@@ -7,6 +7,6 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ../18/layouts/:/layouts
+      - ../layouts/:/layouts
     environment:
       - LAYOUTS_DIR=/layouts
