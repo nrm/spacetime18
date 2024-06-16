@@ -106,11 +106,11 @@ environment:
 Соберите и запустите контейнер:
 
 ```sh
-docker compose up --build
+docker compose up --build -d
 ```
 
 Приложение будет доступно по адресу http://localhost:8000.
 
 ## Пример работы с API
 
- Описан в файле API_docs.md
+ Описан в файле [API_docs.md](API_docs.md)
