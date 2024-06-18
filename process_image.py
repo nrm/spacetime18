@@ -1136,7 +1136,7 @@ if __name__ == "__main__":
             start_time = result["start_time"]
             # print(type(end_time), type(start_time))
             print('time', (end_time - start_time).total_seconds())
-
+            result.pop("start_time")
             result_data.append(result)
     
     with open('coords_' + outputname, 'w', newline='') as f:
