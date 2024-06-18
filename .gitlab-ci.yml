@@ -31,7 +31,7 @@ test:
     - scp -r * deploy_user@172.20.180.215:~/project
     - ssh deploy_user@172.20.180.215 '
         cd ~/project && \
-        chmod +x run_test.sh && \
+        /usr/bin/chmod +x run_test.sh && \
         ./run_test.sh'
     - scp deploy_user@172.20.180.215:~/result.csv .
     - ssh deploy_user@172.20.180.215 'rm -rf ~/project ~/result.csv'
