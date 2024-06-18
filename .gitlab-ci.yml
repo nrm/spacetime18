@@ -27,6 +27,7 @@ deploy:
 test:
   stage: test
   script:
+    - ssh deploy_user@172.20.180.215 'which chmod'
     - ssh deploy_user@172.20.180.215 'mkdir -p ~/project'
     - scp -r * deploy_user@172.20.180.215:~/project
     - ssh deploy_user@172.20.180.215 '
