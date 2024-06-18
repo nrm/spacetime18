@@ -11,6 +11,7 @@ before_script:
   - echo "$SPACETIME18_DEPLOY_KEY" | tr -d '\r' | ssh-add -
   - mkdir -p ~/.ssh
   - ssh-keyscan github.com >> ~/.ssh/known_hosts
+  - ssh-keyscan 172.20.180.215 >> ~/.ssh/known_hosts
 
 deploy:
   stage: deploy
@@ -25,15 +26,12 @@ deploy:
 
 test:
   stage: test
-  before_script:
-    - python3 -m venv venv
-    - source venv/bin/activate
-    - pip install -r requirements.txt
   script:
-    - source venv/bin/activate
-    - python3 test.py --layout /home/spacetime/spacetime18/layouts/layout_2021-08-16.tif --crop /home/spacetime/spacetime18/1_20/crop_0_0_0000.tif
+    - ssh deploy_user@172.20.180.215 'python3 -m venv ~/venv && source ~/venv/bin/activate && pip install -r /path/to/requirements.txt && python3 /path/to/test.py --layout /home/spacetime/spacetime18/layouts/layout_2021-08-16.tif --crop /home/spacetime/spacetime18/1_20/crop_0_0_0000.tif'
+    - scp deploy_user@172.20.180.215:/path/to/result.csv .
   artifacts:
     paths:
       - result.csv
+    when: always
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
