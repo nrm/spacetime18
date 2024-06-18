@@ -1,5 +1,6 @@
 stages:
   - deploy
+  - test
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
@@ -10,6 +11,7 @@ before_script:
   - echo "$SPACETIME18_DEPLOY_KEY" | tr -d '\r' | ssh-add -
   - mkdir -p ~/.ssh
   - ssh-keyscan github.com >> ~/.ssh/known_hosts
+  - ssh-keyscan 172.20.180.215 >> ~/.ssh/known_hosts
 
 deploy:
   stage: deploy
@@ -21,3 +23,19 @@ deploy:
   when: manual
   only:
     - master_in_progress
+
+test:
+  stage: test
+  script:
+    - ssh deploy_user@172.20.180.215 'which chmod'
+    - ssh deploy_user@172.20.180.215 'mkdir -p ~/project'
+    - scp -r * deploy_user@172.20.180.215:~/project
+    - ssh deploy_user@172.20.180.215 'bash ~/project/run_test.sh'
+    - scp deploy_user@172.20.180.215:~/result.csv .
+    - ssh deploy_user@172.20.180.215 'rm -rf ~/project ~/result.csv'
+  artifacts:
+    paths:
+      - result.csv
+    when: always
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
