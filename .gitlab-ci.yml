@@ -27,8 +27,17 @@ deploy:
 test:
   stage: test
   script:
-    - ssh deploy_user@172.20.180.215 'python3 -m venv ~/venv && source ~/venv/bin/activate && pip install -r /path/to/requirements.txt && python3 /path/to/test.py --layout /home/spacetime/spacetime18/layouts/layout_2021-08-16.tif --crop /home/spacetime/spacetime18/1_20/crop_0_0_0000.tif'
-    - scp deploy_user@172.20.180.215:/path/to/result.csv .
+    - ssh deploy_user@172.20.180.215 'mkdir -p ~/project'
+    - scp -r * deploy_user@172.20.180.215:~/project
+    - ssh deploy_user@172.20.180.215 '
+        cd ~/project && \
+        python3 -m venv venv && \
+        source venv/bin/activate && \
+        pip install -r requirements.txt && \
+        python3 test.py --layout /opt/spacetime/layouts/layout_2021-08-16.tif --crop /opt/1_20/crop_0_0_0000.tif && \
+        cp result.csv ~/'
+    - scp deploy_user@172.20.180.215:~/result.csv .
+    - ssh deploy_user@172.20.180.215 'rm -rf ~/project ~/result.csv'
   artifacts:
     paths:
       - result.csv
