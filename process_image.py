@@ -167,8 +167,8 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut,method = 'rgb'):
                 x, y = np.unravel_index(ccf.argmax(), ccf.shape)
                 snr = np.max(ccf) / np.mean(ccf)
             if method=='ir':
-                # ccf = ccf[:,:,0]
-                ccf = ccf[:,:,3]
+                ccf = ccf[:,:,0]
+                # ccf = ccf[:,:,3]
                 x, y = np.unravel_index(ccf.argmax(), ccf.shape)
                 snr = np.max(ccf) / np.mean(ccf)
 
@@ -390,8 +390,8 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
             maxcoin=0
         if method=='ir':
             maxcoin = 0
-            # ccf = ccf[:,:,0]
-            ccf = ccf[:,:,3]
+            ccf = ccf[:,:,0]
+            # ccf = ccf[:,:,3]
     #    plt.imshow(ccf)
     #    plt.show()
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
@@ -567,9 +567,9 @@ def scale_image(image, multx, multy):
 
 
 def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='rgb'):
-    # if method == 'ir':
-    #     substrate = substrate[:,:,3:] * 1.0
-    #     crop = crop[:,:,3:] * 1.0
+    if method == 'ir':
+        substrate = substrate[:,:,3:] * 1.0
+        crop = crop[:,:,3:] * 1.0
 #    deriv_type='x'
     deriv_type='complex'
 #    deriv_type='mcomplex1'
