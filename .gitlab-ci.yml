@@ -1,5 +1,6 @@
 stages:
   - deploy
+  - test
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
@@ -21,3 +22,18 @@ deploy:
   when: manual
   only:
     - master_in_progress
+
+test:
+  stage: test
+  before_script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt
+  script:
+    - source venv/bin/activate
+    - python3 test.py --layout /home/spacetime/spacetime18/layouts/layout_2021-08-16.tif --crop /home/spacetime/spacetime18/1_20/crop_0_0_0000.tif
+  artifacts:
+    paths:
+      - result.csv
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
