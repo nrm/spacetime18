@@ -27,6 +27,25 @@ log_file = None
 if bSaveLog:
     log_file=open('log_file.txt','w',buffering=1)
 
+
+def abcd_to_Affine(coef_a,coef_b,coef_c,coef_d,x0,y0):
+    optimal_params = np.array([coef_d, -coef_b, y0, -coef_c, coef_a, x0])*1.0
+    
+    M = np.array([
+        [optimal_params[0], optimal_params[1], optimal_params[2]],
+        [optimal_params[3], optimal_params[4], optimal_params[5]]
+    ])
+    
+    new_transform = Affine(M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2])
+
+    return new_transform
+
+
+def abcd_to_Affine_correct(coef_a,coef_b,coef_c,coef_d,x0,y0):
+    new_transform = Affine(coef_a, coef_b, x0, coef_c, coef_d, y0)
+
+    return new_transform
+
 def transform_and_fill_new(F, mult_x=5.,mult_y=9,angle=15):
     tmp=F[0][0]
 #     for _ in range(len(F.shape)-1):
@@ -96,6 +115,70 @@ def transform_and_fill_new(F, mult_x=5.,mult_y=9,angle=15):
 def cross_correlate_2d(x, h):
     h = np.fft.ifftshift(np.fft.ifftshift(h, axes=0), axes=1)
     return np.fft.ifft2(np.fft.fft2(x,axes=(0,1)) * np.conj(np.fft.fft2(h,axes=(0,1))),axes=(0,1))
+
+def find_max_poly_(x,y,pn):
+    xx=np.linspace(-1,1,len(y))
+    pp=np.poly1d(np.polyfit(xx,y,pn,w=1-np.abs(xx)))
+    ppx=np.poly1d(np.polyfit(xx,x,2))
+    dpp=np.polyder(pp)
+    roots=np.roots(dpp)
+    if False:
+        print(roots)
+        plt.plot(xx,y)
+        plt.plot(xx,pp(xx))
+        plt.show()
+        plt.plot(xx,x)
+        plt.plot(xx,ppx(xx))
+        plt.show()
+    try:
+        return ppx(np.real(roots[np.argmin(np.abs(roots))]))
+    except:
+        print(roots)
+        #plt.plot(xx,y)
+        #plt.plot(xx,pp(xx))
+        #plt.show()
+        return ppx(0)
+    
+def find_max_poly(yy,ng):
+    myi = yy.argmax()
+    my=yy[myi]
+    xi=np.arange(-ng//2, ng//2)
+    x=xi/(ng//2)
+    w=1-np.abs(x)
+#    pol=np.polyfit(x,yy/my,3)
+    pol=np.polyfit(x,yy[myi-ng//2:myi+ng//2]/my,3,w=w)
+#    x1=np.linspace(-1,1,300)
+#    pp=np.poly1d(pol)
+#    plt.plot(x,pp(x),'.-')
+#    x2=np.arange(-len(yy)//2, len(yy)//2)/(ng//2)
+#    plt.plot(x2,yy/my,'.-')
+#    plt.plot(x1,pp(x1))
+#    plt.show()
+    rts=np.roots(np.polyder(pol,1))
+    i=np.absolute(rts).argmin()
+    return myi+np.real(rts[i])*(ng//2)    
+
+def find_subpixel_ccf_max(ccf):
+    x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+    delta = 20
+    #fig = plt.figure()
+    #plt.title('snr:{:.2f}'.format(np.max(ccf) / np.mean(ccf)))
+    #fig.add_subplot(1, 3, 1)
+#    for i in range(-delta//4,delta//4):
+#        plt.plot(ccf[i+x,y-delta:y+delta],'.-')
+    corr_y = find_max_poly(ccf[x,y-delta:y+delta],10)
+
+    #fig.add_subplot(1, 3, 2)
+    #plt.imshow(ccf[x-delta:x+delta,y-delta:y+delta])
+
+    #fig.add_subplot(1, 3, 3)
+    corr_x = find_max_poly(ccf[x-delta:x+delta,i+y],10)
+    #print(x,y,corr_x,corr_y)
+#    for i in range(-delta//4,delta//4):
+#        plt.plot(ccf[x-delta:x+delta,i+y],'.-')
+    #plt.show()
+    return x - delta + corr_x, y - delta + corr_y
+
 
 def ccf_repro_images(diff_crop,cropped_substrate,ncut):
     mcrop=np.zeros(cropped_substrate.shape)
@@ -169,7 +252,8 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut,method = 'rgb'):
             if method=='ir':
                 ccf = ccf[:,:,0]
                 # ccf = ccf[:,:,3]
-                x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+                x, y = find_subpixel_ccf_max(ccf)
+                #x, y = np.unravel_index(ccf.argmax(), ccf.shape)
                 snr = np.max(ccf) / np.mean(ccf)
 
             #print(i, j, x, y, snr)
@@ -351,7 +435,17 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
     #plt.show()
     for angl in angles:
         if find_rotation:
-            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
+#            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
+            transf_sub=transform_and_fill_new_2(substrate,mult_j,mult_i,angle=-angl)
+            if False:
+                fig = plt.figure()
+                fig.add_subplot(1, 2, 1)
+                print(np.sum(transf_sub[:,:,0]))
+                plt.imshow(np.abs(transf_sub[:,:,0].astype(float)))
+                fig.add_subplot(1, 2, 2)
+                plt.imshow(np.abs(transf_sub_2))
+                plt.show()
+
             diff_substrate=make_derivative(transf_sub,1,1,deriv_type)
         else:
             diff_substrate=make_derivative(substrate,mult_i,mult_j,deriv_type)
@@ -394,6 +488,8 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
             # ccf = ccf[:,:,3]
     #    plt.imshow(ccf)
     #    plt.show()
+           # if find_rotation:
+           #     find_subpixel_ccf_max(ccf)
             x, y = np.unravel_index(ccf.argmax(), ccf.shape)
             #x, y = argmax_ignore_bounds(ccf,i1my//2,i1mx//2)
         snr = np.max(ccf) / np.mean(ccf)
@@ -682,7 +778,20 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     cropped_substrateHD = make_derivative(cropped_substrateHD,1,1,deriv_type)
     cropped_substrate = make_derivative(cropped_substrateHD,optm[0], optm[1],deriv_type)
     
-    crop_HD = scale_image(med_crop,optm[1],optm[0])
+    #crop_HD = scale_image(med_crop,optm[1],optm[0])
+    #print('med_crop:',med_crop.shape)
+    #crop_HD = scale_image(med_crop,optm[1],optm[0])
+    #print('crop_HD old:',crop_HD.shape)
+    #fig = plt.figure()
+    #fig.add_subplot(1, 2, 1)
+    #plt.imshow(np.abs(crop_HD[:,:,0].astype(float)))
+    #fig.add_subplot(1, 2, 2)
+
+    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],-optm[-2],bDownscale=False,bReturnTransform=True)
+    #print('crop_HD new:',crop_HD.shape)
+    #plt.imshow(np.abs(crop_HD[:,:,0].astype(float)))
+    #plt.show()
+
     crop_HD = make_derivative(crop_HD,1,1,deriv_type)
     i1mxHD, i1myHD = crop_HD.shape[:2]
     
@@ -735,7 +844,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
      ( d/det_A*x_sdvig - b/det_A*y_sdvig))
     # print("posle:", (x_sdvig, y_sdvig))
     
-    return crop_coords, substrate_coords, optm,kek1 + y_sdvig, kek2 + x_sdvig
+    return crop_coords, substrate_coords, optm,kek1 + y_sdvig, kek2 + x_sdvig,crop2lay
     
 
 def get_abcd_from_mults_angl_xy0(mult_x,mult_y,angle, x0, y0):
@@ -801,38 +910,31 @@ def get_abcd_from_mults_angl_xy0(mult_x,mult_y,angle, x0, y0):
     return (a, b, c, d, x0, y0)
 
 # вращение вокруг центра с почти допиленным обрезанием
-def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15):
+def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15,bDownscale=True,bReturnTransform=False):
     y_range, x_range = F.shape[0:2]
     
     a, b, c, d, x0, y0 = get_abcd_from_mults_angl_xy0(mult_x, mult_y, angle, x_range//2, y_range//2)
-#     a, b, c, d, x0, y0 = get_abcd_from_mults_angl_xy0(mult_x, mult_y, angle, 0, 0)
-#     print(a, b, c, d, x0, y0)
     
     det_A = a*d-b*c
         
     tmp=F[0][0]
+#    first_dim  = int(1/mult_y*y_range)
+#    second_dim = int(1/mult_x*x_range)
+    first_dim  = int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0))
+    second_dim = int( max(d/det_A,0)*x_range - min(b/det_A,0)*y_range - ( d/det_A*x0 - b/det_A*y0))
+    if bDownscale:
+        first_dim=min(first_dim, y_range)
+        second_dim=min(second_dim, x_range)
     G = np.zeros(
-#         (F.shape[0],
-#         F.shape[1])
-        (max(min(int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0)), y_range),1),
-         max(min(int( max(d/det_A,0)*x_range - min(b/det_A,0)*y_range - ( d/det_A*x0 - b/det_A*y0)), x_range),1))
-#         (int(-min(c/det_A,0)*sh1 + max(a/det_A,0)*sh0 - (-c/det_A*x0 +a/det_A*y0)),
-#         int(max(d/det_A, 0)*sh1 - min(b/det_A,0)*sh0 - (d/det_A*x0 -b/det_A*y0)))
+        (max(first_dim,1),
+         max(second_dim,1),F.shape[2])
         , dtype=type(tmp)
-#         (max(min(int(F.shape[0]*a/det_A+F.shape[1]*b/det_A + x0), F.shape[0]),0),
-#          max(min(int(F.shape[0]*c/det_A+F.shape[1]*d/det_A + y0), F.shape[1]),0)), dtype=type(tmp)
     )
     
-    u_range, v_range = G.shape
-    
+    u_range, v_range = G.shape[0:2]
     rows, cols = F.shape[0:2]
-    
-    # Создаем сетку индексов
     u_indices, v_indices = np.meshgrid(np.arange(u_range), np.arange(v_range), indexing='ij')
-    
     # Вычисляем новые индексы
-#     tmp_new_u_indices = np.round(( a * (u_indices + x0) + b * (v_indices + y0)) / det_A ).astype(int)
-#     tmp_new_v_indices = np.round(( c * (u_indices + x0) + d * (v_indices + y0)) / det_A ).astype(int)
     tmp_new_v_indices = np.round( a * v_indices + b * u_indices + x0).astype(int)
     tmp_new_u_indices = np.round( c * v_indices + d * u_indices + y0).astype(int)
     
@@ -841,15 +943,17 @@ def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15):
     new_u_indices = np.clip(tmp_new_u_indices, 0, rows - 1)
     
     # Формируем выходной массив G
-#     G[u_indices, v_indices] = F[new_u_indices, new_v_indices, 0]
-    G[u_indices, v_indices] = F[new_u_indices, new_v_indices]
+    G[u_indices, v_indices,:] = F[new_u_indices, new_v_indices,:]
         
     G[np.where(tmp_new_u_indices < 0)] = 0
     G[np.where(tmp_new_v_indices < 0)] = 0
     G[np.where(tmp_new_u_indices >= rows)] = 0
     G[np.where(tmp_new_v_indices >= cols)] = 0
-    
-    return G
+    if bReturnTransform:
+        transf = abcd_to_Affine_correct(a,b,c,d,x0,y0)
+        return G,transf
+    else:
+        return G
 
 def prepare_substrate(substrate_path):
     if not os.path.exists('1_20_geotiff'):
@@ -884,6 +988,7 @@ def prepare_substrate(substrate_path):
         plt.imshow(substrate[:,:,0])
         plt.show()
     
+#    mults=np.array([np.arange(9,10.5,0.2),np.arange(5,6.5,0.2)])
     mults=np.array([np.arange(5,10.5,0.2),np.arange(5,10.5,0.2)])
     addmult=0.15
     addmult_step=0.05
@@ -934,10 +1039,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         log_file.write('crop_file_name={}\n'.format(crop_file_name))
     crop = tifffile.imread(crop_file_name)
     method='ir'
-    crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+    crop_coords, substrate_coords, optm,x_,y_,crop2lay = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
     if(abs(x_)+abs(y_)==0):
         method='rgb'
-        crop_coords, substrate_coords, optm,x_,y_ = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+        crop_coords, substrate_coords, optm,x_,y_,crop2lay = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
         if(abs(x_)+abs(y_)==0):
             # continue
             # pass
@@ -1003,10 +1108,11 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         log_file.write('a:{:.6f}, d:{:.6f}, opt:{},{}\n'.format(coef_a, coef_d, optm[0],optm[1]))
         log_file.write('b:{:.6f}, c:{:.6f}\n\n'.format(coef_b, coef_c))
 
+    const1=1
     y1,x1 = (x_0 + (coef_a*0+coef_b*0)*optm[0]),                         (y_0 + (coef_c*0+coef_d*0)*optm[1])
-    y2,x2 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*0)*optm[0]),             (y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*0)*optm[1])
-    y3,x3 = (x_0 + (coef_a*(crop.shape[0] - 1)+coef_b*(crop.shape[1] - 1))*optm[0]), (y_0 + (coef_c*(crop.shape[0] - 1)+coef_d*(crop.shape[1] - 1))*optm[1])
-    y4,x4 = (x_0 + (coef_a*0+coef_b*(crop.shape[1] - 1))*optm[0]) ,             (y_0 + (coef_c*0+coef_d*(crop.shape[1] - 1))*optm[1])
+    y2,x2 = (x_0 + (coef_a*(crop.shape[0] - const1)+coef_b*0)*optm[0]),             (y_0 + (coef_c*(crop.shape[0] - const1)+coef_d*0)*optm[1])
+    y3,x3 = (x_0 + (coef_a*(crop.shape[0] - const1)+coef_b*(crop.shape[1] - const1))*optm[0]), (y_0 + (coef_c*(crop.shape[0] - const1)+coef_d*(crop.shape[1] - const1))*optm[1])
+    y4,x4 = (x_0 + (coef_a*0+coef_b*(crop.shape[1] - const1))*optm[0]) ,             (y_0 + (coef_c*0+coef_d*(crop.shape[1] - const1))*optm[1])
     
     print("******")
     print(x1,y1)
@@ -1034,6 +1140,7 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
                 maxiy = max(maxiy, y)
         
     pixels = [(x1, y1, 'ul'), (x2, y2, 'll'), (x3, y3, 'lr'), (x4, y4, 'ur')]
+#    pixels = [(x1, y1, 'lr'), (x2, y2, 'll'), (x3, y3, 'ul'), (x4, y4, 'ur')]
     
     coords = []
     
@@ -1056,17 +1163,28 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     
     super_result["start"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
     super_result["start_time"] = start_time      
+    optm[0]=optm[0]*(crop.shape[0]-const1)/crop.shape[0]
+    optm[1]=optm[1]*(crop.shape[1]-const1)/crop.shape[1]
+#    optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0+100, -coef_c*optm[1], coef_a*optm[0], x_0-100])*1.0
+#    optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0+1*optm[1], -coef_c*optm[1], coef_a*optm[0], x_0-1*optm[0]])*1.0
     
-    optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0, -coef_c*optm[1], coef_a*optm[0], x_0])*1.0
+#    M = np.array([
+#        [optimal_params[0], optimal_params[1], optimal_params[2]],
+#        [optimal_params[3], optimal_params[4], optimal_params[5]]
+#    ])
     
-    M = np.array([
-        [optimal_params[0], optimal_params[1], optimal_params[2]],
-        [optimal_params[3], optimal_params[4], optimal_params[5]]
-    ])
-    
-    new_transform = Affine(M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2])
-    
-    new_transform = transform*(new_transform)
+#    new_transform = Affine(M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2])
+
+#    new_transform = abcd_to_Affine(coef_a,coef_b,coef_c,coef_d, x_0,y_0)
+
+#    small_transform = abcd_to_Affine((crop.shape[1]-1)/crop.shape[1],0,0,(crop.shape[0]-1)/crop.shape[0], -1,1)
+#    small_transform = abcd_to_Affine_correct(1,0,0,1,1,-1)
+#    small_transform = abcd_to_Affine_correct((crop.shape[0]-1)/crop.shape[0],0,0,(crop.shape[1]-1)/crop.shape[1],1,-1)   #!
+
+    new_transform = abcd_to_Affine(coef_a,coef_b,coef_c,coef_d, x_0,y_0)
+    small_transform = abcd_to_Affine_correct(1,0,0,1,1,-1)   
+    new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
+#    new_transform = crop2lay*new_transform*transform
     
     # src = rasterio.open(crop_file_name_0)
     src = rasterio.open(crop_file_name)
