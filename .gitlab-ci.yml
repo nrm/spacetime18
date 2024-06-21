@@ -27,7 +27,8 @@ deploy:
 test:
   stage: test
   script:
-    - ssh deploy_user@172.20.180.215 'which chmod'
+    # - ssh deploy_user@172.20.180.215 'which chmod'
+    - ssh deploy_user@172.20.180.215 'rm -rf ~/project ~/result.csv'
     - ssh deploy_user@172.20.180.215 'mkdir -p ~/project'
     - scp -r * deploy_user@172.20.180.215:~/project
     - ssh deploy_user@172.20.180.215 'bash ~/project/run_test.sh'
@@ -36,6 +37,8 @@ test:
   artifacts:
     paths:
       - result.csv
+    expire_in: 2 week
     when: always
+  timeout: 4h
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
