@@ -6,7 +6,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 # source ~/venv/bin/activate
 
-for l in $(ls /opt/spacetime/layouts/):
+for l in $(ls /opt/spacetime/layouts/*.tif):
 do
         for c in $(ls /opt/spacetime/1_20/*_0000.tif):
         do
