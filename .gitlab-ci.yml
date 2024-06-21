@@ -37,7 +37,7 @@ test:
   artifacts:
     paths:
       - result.csv
-    expire_in: 2 week
+    expire_in: 3 week
     when: always
   timeout: 4h
   rules:
