@@ -8,7 +8,7 @@ pip install -r requirements.txt
 
 for l in $(ls /opt/spacetime/layouts/):
 do
-        for c in $(ls ~/spacetime18/1_20/*_0000.tif):
+        for c in $(ls /opt/spacetime/1_20/*_0000.tif):
         do
                 echo "L is $l; C is $c";
                 python test.py --layout ${l} --crop ${c}
