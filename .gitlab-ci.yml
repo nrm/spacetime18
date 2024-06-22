@@ -25,7 +25,9 @@ execute-job-1:
   script:
     - echo "Executing test 1..."
     - mkdir -p result_job1
-    - bash ./run_test_L.1.sh result_${CI_COMMIT_SHORT_SHA}_job1 /opt/spacetime/layouts/layout_2021-06-15.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job1.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.1.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif
     - mv result*.csv result_job1/
   artifacts:
     paths:
@@ -40,8 +42,9 @@ execute-job-2:
   script:
     - echo "Executing test 2..."
     - mkdir -p result_job2
-    # - bash ./run_test_L.2.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-06-15.tif
-    - bash ./run_test_L.2.sh result_${CI_COMMIT_SHORT_SHA}_job2 /opt/spacetime/layouts/layout_2021-06-15.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job2.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.2.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif
     - mv result*.csv result_job2/
   artifacts:
     paths:
@@ -56,7 +59,9 @@ execute-job-3:
   script:
     - echo "Executing test 3..."
     - mkdir -p result_job3
-    - bash ./run_test_L.1.sh result_${CI_COMMIT_SHORT_SHA}_job3 /opt/spacetime/layouts/layout_2021-08-16.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job3.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.1.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif
     - mv result*.csv result_job3/
   artifacts:
     paths:
@@ -71,7 +76,9 @@ execute-job-4:
   script:
     - echo "Executing test 4..."
     - mkdir -p result_job4
-    - bash ./run_test_L.2.sh result_${CI_COMMIT_SHORT_SHA}_job4 /opt/spacetime/layouts/layout_2021-08-16.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job4.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.2.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif
     - mv result*.csv result_job4/
   artifacts:
     paths:
@@ -86,7 +93,9 @@ execute-job-5:
   script:
     - echo "Executing test 5..."
     - mkdir -p result_job5
-    - bash ./run_test_L.1.sh result_${CI_COMMIT_SHORT_SHA}_job5 $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-10-10.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job5.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.1.sh "$RESULT_FILE" $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-10-10.tif
     - mv result*.csv result_job5/
   artifacts:
     paths:
@@ -101,7 +110,9 @@ execute-job-6:
   script:
     - echo "Executing test 6..."
     - mkdir -p result_job6
-    - bash ./run_test_L.2.sh  result_${CI_COMMIT_SHORT_SHA}_job6 /opt/spacetime/layouts/layout_2021-10-10.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job6.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.2.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif
     - mv result*.csv result_job6/
   artifacts:
     paths:
@@ -116,7 +127,9 @@ execute-job-7:
   script:
     - echo "Executing test 7..."
     - mkdir -p result_job7
-    - bash ./run_test_L.1.sh  result_${CI_COMMIT_SHORT_SHA}_job7 /opt/spacetime/layouts/layout_2022-03-17.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job7.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.1.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif
     - mv result*.csv result_job7/
   artifacts:
     paths:
@@ -131,7 +144,9 @@ execute-job-8:
   script:
     - echo "Executing test 8..."
     - mkdir -p result_job8
-    - bash ./run_test_L.2.sh  result_${CI_COMMIT_SHORT_SHA}_job8 /opt/spacetime/layouts/layout_2022-03-17.tif
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job8.csv"
+    - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.2.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif
     - mv result*.csv result_job8/
   artifacts:
     paths:
