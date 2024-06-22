@@ -4,8 +4,8 @@
 # host=$(hostname -s)
 # result="result_${taskid}_${host}.csv"
 # result="result_${taskid}.csv"
-layout_file=$2
 result=$1
+layout_file=$2
 
 # Проверяем, существует ли файл layout_file
 if [ ! -f "$layout_file" ]; then
@@ -34,7 +34,7 @@ files=(
     # "/opt/spacetime/1_20/crop_4_3_0000.tif"
 )
 
-for c in "${files[@]}"
+for crop_file in "${files[@]}"
 do
         # echo "L is $l; C is $c";
         # python test.py --layout ${l} --crop ${c} --taskid ${result}

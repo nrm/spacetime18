@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # taskid=$1
+result=$1
 layout_file=$2
 # host=$(hostname -s)
 # result="result_${taskid}_${host}.csv"
 # result="result_${taskid}.csv"
-result=$1
 
 # Проверяем, существует ли файл layout_file
 if [ ! -f "$layout_file" ]; then
