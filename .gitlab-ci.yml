@@ -39,7 +39,7 @@ execute-job-1:
     - ssh deploy_user@p01.forecast.lan 'rm -rf ~/project ~/result*.csv'
     - ssh deploy_user@p01.forecast.lan 'mkdir -p ~/project'
     - scp -r * deploy_user@p01.forecast.lan:~/project
-    - ssh deploy_user@p01.forecast.lan 'bash ~/project/run_test_p01.sh $CI_COMMIT_SHORT_SHA'
+    - ssh deploy_user@p01.forecast.lan 'bash ~/project/run_test_1.1_p01.sh $CI_COMMIT_SHORT_SHA'
     - scp deploy_user@p01.forecast.lan:~/result*.csv .
     - ssh deploy_user@p01.forecast.lan 'rm -rf ~/project ~/result*.csv'
   artifacts:
@@ -57,7 +57,7 @@ execute-job-2:
     - ssh deploy_user@p03.forecast.lan 'rm -rf ~/project ~/result*.csv'
     - ssh deploy_user@p03.forecast.lan 'mkdir -p ~/project'
     - scp -r * deploy_user@p03.forecast.lan:~/project
-    - ssh deploy_user@p03.forecast.lan 'bash ~/project/run_test_p01.sh $CI_COMMIT_SHORT_SHA'
+    - ssh deploy_user@p03.forecast.lan 'bash ~/project/run_test_1.2_p03.sh $CI_COMMIT_SHORT_SHA'
     - scp deploy_user@p03.forecast.lan:~/result*.csv .
     - ssh deploy_user@p03.forecast.lan 'rm -rf ~/project ~/result*.csv'
   artifacts:
