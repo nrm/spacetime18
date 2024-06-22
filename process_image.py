@@ -1013,14 +1013,31 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     end_time = datetime.now(timezone.utc)
     result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
     result_data.append(result)
+
+    try:
+        f = open(outputname, 'r', newline='')
+        f.close()
+    except FileNotFoundError:
+        with open(outputname, 'w', newline='') as f:
+            writer = csv.DictWriter(
+                f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
+            writer.writeheader()
+            for d in result_data:
+                writer.writerow(d)
+    else:
+        with open(outputname, 'a', newline='') as f:
+            writer = csv.DictWriter(
+                f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
+            for d in result_data:
+                writer.writerow(d)
     
     # with open('coords_' + outputname, 'w', newline='') as f:
-    with open(outputname, 'w', newline='') as f:
-        writer = csv.DictWriter(
-            f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
-        writer.writeheader()
-        for d in result_data:
-            writer.writerow(d)
+    # with open(outputname, 'w', newline='') as f:
+    #     writer = csv.DictWriter(
+    #         f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
+    #     writer.writeheader()
+    #     for d in result_data:
+    #         writer.writerow(d)
     
     if bSaveLog:
         log_file.close()
@@ -1263,12 +1280,22 @@ if __name__ == "__main__":
             result.pop("start_time")
             result_data.append(result)
     
-    with open('coords_' + outputname, 'w', newline='') as f:
-        writer = csv.DictWriter(
-            f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
-        writer.writeheader()
-        for d in result_data:
-            writer.writerow(d)
+    try:
+        f = open(outputname, 'r', newline='')
+        f.close()
+    except FileNotFoundError:
+        with open(outputname, 'w', newline='') as f:
+            writer = csv.DictWriter(
+                f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
+            writer.writeheader()
+            for d in result_data:
+                writer.writerow(d)
+    else:
+        with open(outputname, 'a', newline='') as f:
+            writer = csv.DictWriter(
+                f, delimiter=';', fieldnames=list(result_data[0].keys()),quoting=csv.QUOTE_NONNUMERIC)
+            for d in result_data:
+                writer.writerow(d)
     
     if bSaveLog:
         log_file.close()
