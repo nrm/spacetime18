@@ -230,7 +230,6 @@ execute-job-13:
     - echo "Executing test 13..."
     - mkdir -p result_job13
     - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job13.csv"
-    # - echo "Result file will be: $RESULT_FILE"
     - bash ./run_test_L.3.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif
     - mv result*.csv result_job13/
   artifacts:
@@ -247,7 +246,6 @@ execute-job-14:
     - echo "Executing test 14..."
     - mkdir -p result_job14
     - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job14.csv"
-    # - echo "Result file will be: $RESULT_FILE"
     - bash ./run_test_L.4.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif
     - mv result*.csv result_job14/
   artifacts:
@@ -264,7 +262,6 @@ execute-job-15:
     - echo "Executing test 15..."
     - mkdir -p result_job15
     - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job15.csv"
-    # - echo "Result file will be: $RESULT_FILE"
     - bash ./run_test_L.3.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif
     - mv result*.csv result_job15/
   artifacts:
@@ -281,7 +278,6 @@ execute-job-16:
     - echo "Executing test 16..."
     - mkdir -p result_job16
     - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job16.csv"
-    # - echo "Result file will be: $RESULT_FILE"
     - bash ./run_test_L.4.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif
     - mv result*.csv result_job16/
   artifacts:
@@ -299,7 +295,6 @@ collect-results:
     - rm -rf combined_results || echo "No exist dir"
     - mkdir -p combined_results
     - echo "layout_name;crop_name;ul;ur;br;bl;crs;start;end" > combined_results/combined_result.csv
-    # - echo "Collecting results from job 1..."
     - cp result_job?/result_${CI_COMMIT_SHORT_SHA}_job?.csv combined_results/ || echo "No results from job 1"
     - echo "Processing combined results..."
     - grep -v "layout_name" result_job*/result_${CI_COMMIT_SHORT_SHA}_job*.csv |  cut -d':' -f2- >> combined_results/combined_result.csv
