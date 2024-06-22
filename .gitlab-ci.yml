@@ -3,6 +3,9 @@ stages:
   - test
   - collect
 
+after_script:
+  - rm -rf result_job*
+
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
@@ -141,22 +144,31 @@ collect-results:
   stage: collect
   script:
     - mkdir -p combined_results
+    - echo "layout_name";"crop_name";"ul";"ur";"br";"bl";"crs";"start";"end" > combined_results/combined_result.csv
     - echo "Collecting results from job 1..."
     - cp result_job1/* combined_results/ || echo "No results from job 1"
+    - grep -v "layout_name" result_job1/*.csv >> combined_results/combined_result.csv
     - echo "Collecting results from job 2..."
     - cp result_job2/* combined_results/ || echo "No results from job 2"
+    - grep -v "layout_name" result_job2/*.csv >> combined_results/combined_result.csv
     - echo "Collecting results from job 3..."
     - cp result_job3/* combined_results/ || echo "No results from job 3"
+    - grep -v "layout_name" result_job3/*.csv >> combined_results/combined_result.csv
     - echo "Collecting results from job 4..."
     - cp result_job4/* combined_results/ || echo "No results from job 4"
+    - grep -v "layout_name" result_job4/*.csv >> combined_results/combined_result.csv
     - echo "Collecting results from job 5..."
     - cp result_job5/* combined_results/ || echo "No results from job 5"
+    - grep -v "layout_name" result_job5/*.csv >> combined_results/combined_result.csv
     - echo "Collecting results from job 6..."
     - cp result_job6/* combined_results/ || echo "No results from job 6"
+    - grep -v "layout_name" result_job6/*.csv >> combined_results/combined_result.csv
     - echo "Collecting results from job 7..."
     - cp result_job7/* combined_results/ || echo "No results from job 7"
+    - grep -v "layout_name" result_job7/*.csv >> combined_results/combined_result.csv
     - echo "Collecting results from job 8..."
     - cp result_job8/* combined_results/ || echo "No results from job 8"
+    - grep -v "layout_name" result_job8/*.csv >> combined_results/combined_result.csv
     - echo "Processing combined results..."
     - ls -R combined_results/
     # Здесь можно добавить дополнительные команды для обработки результатов
