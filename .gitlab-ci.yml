@@ -1,20 +1,10 @@
 stages:
   - deploy
-  - distribute
   - test
   - collect
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-
-before_script:
-  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-  - eval $(ssh-agent -s)
-  - echo "$SPACETIME18_DEPLOY_KEY" | tr -d '\r' | ssh-add -
-  - mkdir -p ~/.ssh
-  - ssh-keyscan github.com >> ~/.ssh/known_hosts
-  - ssh-keyscan p01.forecast.lan >> ~/.ssh/known_hosts
-  - ssh-keyscan p03.forecast.lan >> ~/.ssh/known_hosts
 
 deploy:
   stage: deploy
@@ -27,26 +17,17 @@ deploy:
   only:
     - master_in_progress
 
-distribute-job:
-  stage: distribute
-  script:
-    - echo "Distributing tasks to servers..."
-
 execute-job-1:
   stage: test
   script:
-    # - ssh deploy_user@p01.forecast.lan 'which chmod'
-    - ssh deploy_user@p01.forecast.lan 'rm -rf ~/project ~/result*.csv'
-    - ssh deploy_user@p01.forecast.lan 'mkdir -p ~/project'
-    - scp -r * deploy_user@p01.forecast.lan:~/project
-    - ssh deploy_user@p01.forecast.lan 'bash ~/project/run_test_1.1_p01.sh $CI_COMMIT_SHORT_SHA'
-    - scp deploy_user@p01.forecast.lan:~/result*.csv .
-    - ssh deploy_user@p01.forecast.lan 'rm -rf ~/project ~/result*.csv'
+    - echo "Executing test 1..."
+    - mkdir -p result_job1
+    - bash ./run_test_L.1.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-06-15.tif
+    - mv result*.csv result_job1/
   artifacts:
     paths:
-      - result_p01/
+      - result_job1/
     expire_in: 1 week
-    when: always
   timeout: 4h
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
@@ -54,17 +35,44 @@ execute-job-1:
 execute-job-2:
   stage: test
   script:
-    - ssh deploy_user@p03.forecast.lan 'rm -rf ~/project ~/result*.csv'
-    - ssh deploy_user@p03.forecast.lan 'mkdir -p ~/project'
-    - scp -r * deploy_user@p03.forecast.lan:~/project
-    - ssh deploy_user@p03.forecast.lan 'bash ~/project/run_test_1.2_p03.sh $CI_COMMIT_SHORT_SHA'
-    - scp deploy_user@p03.forecast.lan:~/result*.csv .
-    - ssh deploy_user@p03.forecast.lan 'rm -rf ~/project ~/result*.csv'
+    - echo "Executing test 2..."
+    - mkdir -p result_job2
+    - bash ./run_test_L.2.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-06-15.tif
+    - mv result*.csv result_job2/
   artifacts:
     paths:
-      - result_p03/
+      - result_job2/
     expire_in: 1 week
-    when: always
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-3:
+  stage: test
+  script:
+    - echo "Executing test 3..."
+    - mkdir -p result_job3
+    - bash ./run_test_L.1.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-08-16.tif
+    - mv result*.csv result_job3/
+  artifacts:
+    paths:
+      - result_job3/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-4:
+  stage: test
+  script:
+    - echo "Executing test 4..."
+    - mkdir -p result_job4
+    - bash ./run_test_L.2.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-08-16.tif
+    - mv result*.csv result_job4/
+  artifacts:
+    paths:
+      - result_job4/
+    expire_in: 1 week
   timeout: 4h
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
@@ -73,9 +81,23 @@ collect-results:
   stage: collect
   script:
     - mkdir -p combined_results
-    - cp result_p01/* combined_results/
-    - cp result_p03/* combined_results/
+    - echo "Collecting results from job 1..."
+    - cp result_job1/* combined_results/ || echo "No results from job 1"
+    - echo "Collecting results from job 2..."
+    - cp result_job2/* combined_results/ || echo "No results from job 2"
+    - echo "Collecting results from job 3..."
+    - cp result_job3/* combined_results/ || echo "No results from job 3"
+    - echo "Collecting results from job 4..."
+    - cp result_job4/* combined_results/ || echo "No results from job 4"
+    - echo "Processing combined results..."
+    - ls -R combined_results/
+    # Здесь можно добавить дополнительные команды для обработки результатов
   artifacts:
     paths:
       - combined_results/
     expire_in: 1 week
+  needs:
+    - execute-job-1
+    - execute-job-2
+    - execute-job-3
+    - execute-job-4
