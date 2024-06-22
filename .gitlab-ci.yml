@@ -144,7 +144,7 @@ collect-results:
   stage: collect
   script:
     - mkdir -p combined_results
-    - echo "layout_name";"crop_name";"ul";"ur";"br";"bl";"crs";"start";"end" > combined_results/combined_result.csv
+    - echo "layout_name;crop_name;ul;ur;br;bl;crs;start;end" > combined_results/combined_result.csv
     - echo "Collecting results from job 1..."
     - cp result_job1/* combined_results/ || echo "No results from job 1"
     - grep -v "layout_name" result_job1/*.csv >> combined_results/combined_result.csv
