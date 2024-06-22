@@ -77,6 +77,66 @@ execute-job-4:
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
 
+execute-job-5:
+  stage: test
+  script:
+    - echo "Executing test 5..."
+    - mkdir -p result_job5
+    - bash ./run_test_L.1.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-10-10.tif
+    - mv result*.csv result_job5/
+  artifacts:
+    paths:
+      - result_job5/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-6:
+  stage: test
+  script:
+    - echo "Executing test 6..."
+    - mkdir -p result_job6
+    - bash ./run_test_L.2.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2021-10-10.tif
+    - mv result*.csv result_job6/
+  artifacts:
+    paths:
+      - result_job6/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-7:
+  stage: test
+  script:
+    - echo "Executing test 7..."
+    - mkdir -p result_job7
+    - bash ./run_test_L.1.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2022-03-17.tif
+    - mv result*.csv result_job7/
+  artifacts:
+    paths:
+      - result_job7/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-8:
+  stage: test
+  script:
+    - echo "Executing test 8..."
+    - mkdir -p result_job8
+    - bash ./run_test_L.2.sh $CI_COMMIT_SHORT_SHA /opt/spacetime/layouts/layout_2022-03-17.tif
+    - mv result*.csv result_job8/
+  artifacts:
+    paths:
+      - result_job8/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
 collect-results:
   stage: collect
   script:
@@ -89,6 +149,14 @@ collect-results:
     - cp result_job3/* combined_results/ || echo "No results from job 3"
     - echo "Collecting results from job 4..."
     - cp result_job4/* combined_results/ || echo "No results from job 4"
+    - echo "Collecting results from job 5..."
+    - cp result_job5/* combined_results/ || echo "No results from job 5"
+    - echo "Collecting results from job 6..."
+    - cp result_job6/* combined_results/ || echo "No results from job 6"
+    - echo "Collecting results from job 7..."
+    - cp result_job7/* combined_results/ || echo "No results from job 7"
+    - echo "Collecting results from job 8..."
+    - cp result_job8/* combined_results/ || echo "No results from job 8"
     - echo "Processing combined results..."
     - ls -R combined_results/
     # Здесь можно добавить дополнительные команды для обработки результатов
@@ -101,3 +169,7 @@ collect-results:
     - execute-job-2
     - execute-job-3
     - execute-job-4
+    - execute-job-5
+    - execute-job-6
+    - execute-job-7
+    - execute-job-8
