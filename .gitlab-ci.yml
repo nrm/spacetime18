@@ -39,7 +39,7 @@ execute-job-1:
   artifacts:
     paths:
       - result_p01/
-    expire_in: 3 week
+    expire_in: 1 week
     when: always
   timeout: 4h
   rules:
@@ -48,16 +48,16 @@ execute-job-1:
 execute-job-2:
   stage: test
   script:
-    - ssh deploy_user@p02.forecast.lan 'rm -rf ~/project ~/result*.csv'
-    - ssh deploy_user@p02.forecast.lan 'mkdir -p ~/project'
-    - scp -r * deploy_user@p02.forecast.lan:~/project
-    - ssh deploy_user@p02.forecast.lan 'bash ~/project/run_test_p01.sh $CI_COMMIT_SHORT_SHA'
-    - scp deploy_user@p02.forecast.lan:~/result*.csv .
-    - ssh deploy_user@p02.forecast.lan 'rm -rf ~/project ~/result*.csv'
+    - ssh deploy_user@p03.forecast.lan 'rm -rf ~/project ~/result*.csv'
+    - ssh deploy_user@p03.forecast.lan 'mkdir -p ~/project'
+    - scp -r * deploy_user@p03.forecast.lan:~/project
+    - ssh deploy_user@p03.forecast.lan 'bash ~/project/run_test_p01.sh $CI_COMMIT_SHORT_SHA'
+    - scp deploy_user@p03.forecast.lan:~/result*.csv .
+    - ssh deploy_user@p03.forecast.lan 'rm -rf ~/project ~/result*.csv'
   artifacts:
     paths:
-      - result_p02/
-    expire_in: 3 week
+      - result_p03/
+    expire_in: 1 week
     when: always
   timeout: 4h
   rules:
@@ -68,7 +68,7 @@ collect-results:
   script:
     - mkdir -p combined_results
     - cp result_p01/* combined_results/
-    - cp result_p02/* combined_results/
+    - cp result_p03/* combined_results/
   artifacts:
     paths:
       - combined_results/

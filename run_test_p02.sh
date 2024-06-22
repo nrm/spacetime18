@@ -11,7 +11,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 # source ~/venv/bin/activate
 
-l = "/opt/spacetime/layouts/layout_2021-08-16.tif"
+l="/opt/spacetime/layouts/layout_2021-08-16.tif"
 for c in $(ls /opt/spacetime/1_20/*_0000.tif):
 do
         echo "L is $l; C is $c";
