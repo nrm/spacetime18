@@ -162,32 +162,10 @@ collect-results:
     - rm -rf combined_results || echo "No exist dir"
     - mkdir -p combined_results
     - echo "layout_name;crop_name;ul;ur;br;bl;crs;start;end" > combined_results/combined_result.csv
-    - echo "Collecting results from job 1..."
+    # - echo "Collecting results from job 1..."
     - cp result_job?/result_${CI_COMMIT_SHORT_SHA}_job?.csv combined_results/ || echo "No results from job 1"
-    - grep -v "layout_name" result_job*/result_${CI_COMMIT_SHORT_SHA}_job*.csv >> combined_results/combined_result.csv
-    # # - grep -v "layout_name" result_job1/result_${CI_COMMIT_SHORT_SHA}_job1.csv >> combined_results/combined_result.csv
-    # - echo "Collecting results from job 2..."
-    # - cp result_job2/result_${CI_COMMIT_SHORT_SHA}_job2.csv combined_results/ || echo "No results from job 2"
-    # # - grep -v "layout_name" result_job2/result_${CI_COMMIT_SHORT_SHA}_job2.csv >> combined_results/combined_result.csv
-    # - echo "Collecting results from job 3..."
-    # - cp result_job3/result_${CI_COMMIT_SHORT_SHA}_job3.csv combined_results/ || echo "No results from job 3"
-    # # - grep -v "layout_name" result_job3/result_${CI_COMMIT_SHORT_SHA}_job3.csv >> combined_results/combined_result.csv
-    # - echo "Collecting results from job 4..."
-    # - cp result_job4/result_${CI_COMMIT_SHORT_SHA}_job4.csv combined_results/ || echo "No results from job 4"
-    # # - grep -v "layout_name" result_job4/*.csv >> combined_results/combined_result.csv
-    # - echo "Collecting results from job 5..."
-    # - cp result_job5/result_${CI_COMMIT_SHORT_SHA}_job5.csv combined_results/ || echo "No results from job 5"
-    # # - grep -v "layout_name" result_job5/*.csv >> combined_results/combined_result.csv
-    # - echo "Collecting results from job 6..."
-    # - cp result_job6/* combined_results/ || echo "No results from job 6"
-    # - grep -v "layout_name" result_job6/*.csv >> combined_results/combined_result.csv
-    # - echo "Collecting results from job 7..."
-    # - cp result_job7/* combined_results/ || echo "No results from job 7"
-    # - grep -v "layout_name" result_job7/*.csv >> combined_results/combined_result.csv
-    # - echo "Collecting results from job 8..."
-    # - cp result_job8/* combined_results/ || echo "No results from job 8"
-    # - grep -v "layout_name" result_job*/result_${CI_COMMIT_SHORT_SHA}_job*.csv >> combined_results/combined_result.csv
     - echo "Processing combined results..."
+    - grep -v "layout_name" result_job*/result_${CI_COMMIT_SHORT_SHA}_job*.csv >> combined_results/combined_result.csv
     - ls -R combined_results/
     # Здесь можно добавить дополнительные команды для обработки результатов
   artifacts:
