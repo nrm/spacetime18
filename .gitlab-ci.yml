@@ -165,7 +165,7 @@ collect-results:
     # - echo "Collecting results from job 1..."
     - cp result_job?/result_${CI_COMMIT_SHORT_SHA}_job?.csv combined_results/ || echo "No results from job 1"
     - echo "Processing combined results..."
-    - grep -v "layout_name" result_job*/result_${CI_COMMIT_SHORT_SHA}_job*.csv | awk -F':' '{print $2}' >> combined_results/combined_result.csv
+    - grep -v "layout_name" result_job*/result_${CI_COMMIT_SHORT_SHA}_job*.csv |  cut -d':' -f2- >> combined_results/combined_result.csv
     - ls -R combined_results/
     # Здесь можно добавить дополнительные команды для обработки результатов
   artifacts:
