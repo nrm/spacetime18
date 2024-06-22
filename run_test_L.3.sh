@@ -20,7 +20,7 @@ pip install -r requirements.txt
 
 files=(
     "/opt/spacetime/1_20/crop_1_1_0000.tif"
-    # "/opt/spacetime/1_20/crop_1_2_0000.tif"
+    "/opt/spacetime/1_20/crop_1_2_0000.tif"
     # "/opt/spacetime/1_20/crop_1_3_0000.tif"
     # "/opt/spacetime/1_20/crop_2_0_0000.tif"
     # "/opt/spacetime/1_20/crop_2_1_0000.tif"
