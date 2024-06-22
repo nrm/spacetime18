@@ -1,5 +1,6 @@
 stages:
   - deploy
+  - distribute
   - test
   - collect
 
@@ -25,6 +26,11 @@ deploy:
   when: manual
   only:
     - master_in_progress
+
+distribute-job:
+  stage: distribute
+  script:
+    - echo "Distributing tasks to servers..."
 
 execute-job-1:
   stage: test
