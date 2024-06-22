@@ -3,8 +3,8 @@ stages:
   - test
   - collect
 
-after_script:
-  - rm -rf result_job*
+# after_script:
+#   - rm -rf result_job*
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
