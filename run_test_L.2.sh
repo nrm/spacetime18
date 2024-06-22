@@ -20,18 +20,13 @@ pip install -r requirements.txt
 # source ~/venv/bin/activate
 
 # l="/opt/spacetime/layouts/layout_2021-08-16.tif"
-l="/opt/spacetime/layouts/layout_2021-06-15.tif"
+# l="/opt/spacetime/layouts/layout_2021-06-15.tif"
 files=(
     "/opt/spacetime/1_20/crop_2_2_0000.tif"
-    # "/opt/spacetime/1_20/crop_2_3_0000.tif"
+    "/opt/spacetime/1_20/crop_2_3_0000.tif"
     # "/opt/spacetime/1_20/crop_3_0_0000.tif"
     # "/opt/spacetime/1_20/crop_3_1_0000.tif"
     # "/opt/spacetime/1_20/crop_3_2_0000.tif"
-    # "/opt/spacetime/1_20/crop_3_3_0000.tif"
-    # "/opt/spacetime/1_20/crop_4_0_0000.tif"
-    # "/opt/spacetime/1_20/crop_4_1_0000.tif"
-    # "/opt/spacetime/1_20/crop_4_2_0000.tif"
-    # "/opt/spacetime/1_20/crop_4_3_0000.tif"
 )
 
 for crop_file in "${files[@]}"
