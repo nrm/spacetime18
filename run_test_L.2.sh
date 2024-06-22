@@ -1,9 +1,17 @@
 #!/bin/bash
 
-taskid=$1
-host=$(hostname -s)
-result="result_${taskid}_${host}.csv"
+# taskid=$1
+# host=$(hostname -s)
+# result="result_${taskid}_${host}.csv"
+# result="result_${taskid}.csv"
+layout_file=$2
+result=$1
 
+# Проверяем, существует ли файл layout_file
+if [ ! -f "$layout_file" ]; then
+    echo "Error: Layout file $layout_file does not exist."
+    exit 1
+fi
 
 cd ~/project
 python3 -m venv venv
@@ -28,8 +36,10 @@ files=(
 
 for c in "${files[@]}"
 do
-        echo "L is $l; C is $c";
-        python test.py --layout ${l} --crop ${c} --taskid ${result}
+        # echo "L is $l; C is $c";
+        # python test.py --layout ${l} --crop ${c} --taskid ${result}
+    echo "Layout is $layout_file; Crop is $crop_file"
+    python test.py --layout "$layout_file" --crop "$crop_file" --taskid "$result"
 done
 
 # cp result.csv ~/
