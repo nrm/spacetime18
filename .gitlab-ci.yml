@@ -156,6 +156,143 @@ execute-job-8:
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
 
+execute-job-9:
+  stage: test
+  script:
+    - echo "Executing test 9..."
+    - mkdir -p result_job9
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job9.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.3.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif
+    - mv result*.csv result_job9/
+  artifacts:
+    paths:
+      - result_job9/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-10:
+  stage: test
+  script:
+    - echo "Executing test 10..."
+    - mkdir -p result_job10
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job10.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.4.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif
+    - mv result*.csv result_job10/
+  artifacts:
+    paths:
+      - result_job10/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-11:
+  stage: test
+  script:
+    - echo "Executing test 11..."
+    - mkdir -p result_job11
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job11.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.3.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif
+    - mv result*.csv result_job11/
+  artifacts:
+    paths:
+      - result_job11/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-12:
+  stage: test
+  script:
+    - echo "Executing test 12..."
+    - mkdir -p result_job12
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job12.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.4.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif
+    - mv result*.csv result_job12/
+  artifacts:
+    paths:
+      - result_job12/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-13:
+  stage: test
+  script:
+    - echo "Executing test 13..."
+    - mkdir -p result_job13
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job13.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.3.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif
+    - mv result*.csv result_job13/
+  artifacts:
+    paths:
+      - result_job13/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-14:
+  stage: test
+  script:
+    - echo "Executing test 14..."
+    - mkdir -p result_job14
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job14.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.4.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif
+    - mv result*.csv result_job14/
+  artifacts:
+    paths:
+      - result_job14/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-15:
+  stage: test
+  script:
+    - echo "Executing test 15..."
+    - mkdir -p result_job15
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job15.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.3.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif
+    - mv result*.csv result_job15/
+  artifacts:
+    paths:
+      - result_job15/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+execute-job-16:
+  stage: test
+  script:
+    - echo "Executing test 16..."
+    - mkdir -p result_job16
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_job16.csv"
+    # - echo "Result file will be: $RESULT_FILE"
+    - bash ./run_test_L.4.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif
+    - mv result*.csv result_job16/
+  artifacts:
+    paths:
+      - result_job16/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+
 collect-results:
   stage: collect
   script:
