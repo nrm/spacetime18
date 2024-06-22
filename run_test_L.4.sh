@@ -24,9 +24,9 @@ pip install -r requirements.txt
 files=(
     "/opt/spacetime/1_20/crop_3_3_0000.tif"
     "/opt/spacetime/1_20/crop_4_0_0000.tif"
-    # "/opt/spacetime/1_20/crop_4_1_0000.tif"
-    # "/opt/spacetime/1_20/crop_4_2_0000.tif"
-    # "/opt/spacetime/1_20/crop_4_3_0000.tif"
+    "/opt/spacetime/1_20/crop_4_1_0000.tif"
+    "/opt/spacetime/1_20/crop_4_2_0000.tif"
+    "/opt/spacetime/1_20/crop_4_3_0000.tif"
 )
 
 for crop_file in "${files[@]}"
