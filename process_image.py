@@ -252,8 +252,10 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut,method = 'rgb'):
             if method=='ir':
                 ccf = ccf[:,:,0]
                 # ccf = ccf[:,:,3]
-                x, y = find_subpixel_ccf_max(ccf)
-                #x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+                try:
+                    x, y = find_subpixel_ccf_max(ccf)
+                except:
+                    x, y = np.unravel_index(ccf.argmax(), ccf.shape)
                 snr = np.max(ccf) / np.mean(ccf)
 
             #print(i, j, x, y, snr)
@@ -585,7 +587,7 @@ def initial_search(diff_crop, substrate, mults,deriv_type,find_rotation=False,me
 
     #print("hello")
     if not find_rotation:
-        print(snrs[:7,1:])
+        print(snrs[:14,1:])
     end = time.time()
     print('time:',end-start)
     if bSaveLog:
@@ -682,7 +684,10 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
     ISmult=2
-    med_crop_sm = smooth(med_crop,ISmult,ISmult)
+    if ISmult!=1:
+        med_crop_sm = smooth(med_crop,ISmult,ISmult)      
+    else:
+        med_crop_sm = med_crop*1.0
     diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
     substrate_sm0 = smooth(substrate,ISmult*6,ISmult*6)
     substrate_sm = substrate_sm0[::ISmult,::ISmult]
@@ -695,11 +700,11 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #    return [],[],[],0,0
     #exit(0)
 #    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
-    max_snrs=7
+    max_snrs=14
     for is_r in range(max_snrs):
         if is_r==max_snrs-1:
             print('snr search failed')
-            return [],[],[],0,0
+            return [],[],[],0,0,None
 
         best_snr=search_results[is_r,0]
         optm=search_results[is_r,1:]
@@ -989,7 +994,7 @@ def prepare_substrate(substrate_path):
         plt.show()
     
 #    mults=np.array([np.arange(9,10.5,0.2),np.arange(5,6.5,0.2)])
-    mults=np.array([np.arange(5,10.5,0.2),np.arange(5,10.5,0.2)])
+    mults=np.array([np.arange(4,10.5,0.2),np.arange(4,10.5,0.2)])
     addmult=0.15
     addmult_step=0.05
     refined_mults=[np.arange(-addmult,+addmult,addmult_step),np.arange(-addmult,+addmult,addmult_step)]
@@ -1058,7 +1063,8 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
                   
             return super_result
             # TODO
-    if(len(crop_coords)<3):
+    print('number of minicrops:',len(crop_coords))
+    if(len(crop_coords)<5):
         coef_a = 1
         coef_b = 0
         coef_c = 0
