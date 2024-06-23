@@ -705,7 +705,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmult=1
+    ISmult=4
     if ISmult!=1:
         med_crop_sm = smooth(med_crop,ISmult,ISmult)      
     else:
@@ -1289,32 +1289,24 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
                 miniy = min(miniy, y)
                 maxiy = max(maxiy, y)
         
-    pixels = [(x1, y1, 'ul'), (x2, y2, 'll'), (x3, y3, 'lr'), (x4, y4, 'ur')]
-#    pixels = [(x1, y1, 'lr'), (x2, y2, 'll'), (x3, y3, 'ul'), (x4, y4, 'ur')]
+    #pixels = [(x1, y1, 'ul'), (x2, y2, 'll'), (x3, y3, 'lr'), (x4, y4, 'ur')]
+    pixels1 = [(0, 0, 'lr'), (0, crop.shape[1], 'll'), (crop.shape[0], crop.shape[1], 'ul'), (crop.shape[0], 0, 'ur')]
+#    pixels1 = [(x_0, y_0, 'lr'), (x_0 - crop.shape[1], y_0, 'll'), (x_0-crop.shape[1], y_0-crop.shape[0], 'ul'), (x_0, y_0-crop.shape[0], 'ur')]
     
     coords = []
     
     file_coord.write(stem + '\n')
-    for pixel in pixels:
-        spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset=pixel[2])
-        
-        coords.append(spatial_coordinate)
-        print("spatial_coordinate:", spatial_coordinate)
+#    for pixel in pixels:
+#        spatial_coordinate = rasterio.transform.xy(transform, pixel[1], pixel[0], offset=pixel[2])
+#        
+#        coords.append(spatial_coordinate)
+#        print("spatial_coordinate:", spatial_coordinate)
 
-        file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
-        file_coord.flush()
+#        file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
+#        file_coord.flush()
     
-    super_result["ul"] = str(int(coords[0][0]*1000)/1000) + '_' + str(int(coords[0][1]*1000)/1000)
-    super_result["ur"] = str(int(coords[3][0]*1000)/1000) + '_' + str(int(coords[3][1]*1000)/1000)
-    super_result["br"] = str(int(coords[2][0]*1000)/1000) + '_' + str(int(coords[2][1]*1000)/1000)
-    super_result["bl"] = str(int(coords[1][0]*1000)/1000) + '_' + str(int(coords[1][1]*1000)/1000)
-    
-    super_result["crs"] = 'EPSG:32637'
-    
-    super_result["start"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
-    super_result["start_time"] = start_time      
-    optm[0]=optm[0]*(crop.shape[0]-const1)/crop.shape[0]
-    optm[1]=optm[1]*(crop.shape[1]-const1)/crop.shape[1]
+#    optm[0]=optm[0]*(crop.shape[0]-const1)/crop.shape[0]
+#    optm[1]=optm[1]*(crop.shape[1]-const1)/crop.shape[1]
 #    optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0+100, -coef_c*optm[1], coef_a*optm[0], x_0-100])*1.0
 #    optimal_params = np.array([coef_d*optm[1], -coef_b*optm[0], y_0+1*optm[1], -coef_c*optm[1], coef_a*optm[0], x_0-1*optm[0]])*1.0
     
@@ -1337,8 +1329,26 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     
     new_transform_by_initial_search = transform*(transform_from_lay_to_crop_by_initial_search)
     new_transform_by_refind_search = transform*(transform_from_lay_to_crop_by_refind_search)
-    
+
+    for pixel in pixels1:
+        spatial_coordinate = rasterio.transform.xy(new_transform, pixel[1], pixel[0], offset=pixel[2])
+        
+        coords.append(spatial_coordinate)
+        print("spatial_coordinate new:", spatial_coordinate)
+
+        file_coord.write(f"{spatial_coordinate[0]} {spatial_coordinate[1]}\n")
+        file_coord.flush()
+
 #    new_transform = crop2lay*new_transform*transform
+    super_result["ul"] = str(int(coords[0][0]*1000)/1000) + '_' + str(int(coords[0][1]*1000)/1000)
+    super_result["ur"] = str(int(coords[3][0]*1000)/1000) + '_' + str(int(coords[3][1]*1000)/1000)
+    super_result["br"] = str(int(coords[2][0]*1000)/1000) + '_' + str(int(coords[2][1]*1000)/1000)
+    super_result["bl"] = str(int(coords[1][0]*1000)/1000) + '_' + str(int(coords[1][1]*1000)/1000)
+    
+    super_result["crs"] = 'EPSG:32637'
+    
+    super_result["start"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+    super_result["start_time"] = start_time      
     
     stem_crop, suffix_crop = path.splitext(os.path.basename(crop_file_name))
     
