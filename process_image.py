@@ -1044,7 +1044,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     
     return result
 
-def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname, process_method):
+def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname):
     super_result = {}
     # «layout_name» имя подложки,
     # «crop_name» имя снимка,  
@@ -1060,6 +1060,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     if bSaveLog:
         log_file.write('crop_file_name={}\n'.format(crop_file_name))
     crop = tifffile.imread(crop_file_name)
+    process_method='ir'
+    if 'layout_2022-03-17' in substrate_path:
+        process_method='rgb'
+
     method=process_method
     crop_coords, substrate_coords, optm,x_,y_,crop2lay = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
     if(abs(x_)+abs(y_)==0):
@@ -1268,13 +1272,10 @@ if __name__ == "__main__":
     print(substrate_path)
     
     substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
-    process_method='ir'
-    if 'layout_2022-03-17' in substrate_path:
-        process_method='rgb'
     for i in range(0,5):
         for j in range(0,4):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
-            result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname, process_method)
+            result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
             end_time = datetime.now(timezone.utc)
             result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
             start_time = result["start_time"]
