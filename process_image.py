@@ -261,15 +261,20 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut,method = 'rgb'):
             ccf = np.abs(cross_correlate_2d(mcrop, cropped_substrate))  # !!!!!!
             if method=='rgb':
                 ccf = np.sum(ccf[:,:,:3],axis=2)
-                x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+                try:
+                    x, y = find_subpixel_ccf_max(ccf)
+                except:
+                    x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+
+#                x, y = np.unravel_index(ccf.argmax(), ccf.shape)
                 snr = np.max(ccf) / np.mean(ccf)
             if method=='ir':
                 ccf = ccf[:,:,0]
                 # ccf = ccf[:,:,3]
-                #try:
-                #    x, y = find_subpixel_ccf_max(ccf)
-                #except:
-                x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+                try:
+                    x, y = find_subpixel_ccf_max(ccf)
+                except:
+                    x, y = np.unravel_index(ccf.argmax(), ccf.shape)
                 snr = np.max(ccf) / np.mean(ccf)
 
             #print(i, j, x, y, snr)
@@ -715,8 +720,8 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmults=[4]
-#    ISmults=[2,1]
+#    ISmults=[4]
+    ISmults=[2,1]
 
     #ISmult=2
     snr_refined = 0
@@ -848,7 +853,13 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
             
             print('optm1:',optm, ' SNR_refined:',snr_refined, ' initial SNR:',best_snr)
             print('newtransf_refind:',newtransf,sep='\n')
-            transform_from_lay_to_crop_by_refind_search = ~(half_crop_translate*~(kek_translate*newtransf*crop_translate))
+
+
+            #transform_from_lay_to_crop_by_refind_search = ~(half_crop_translate*~(kek_translate*newtransf*crop_translate))
+            small_transform = abcd_to_Affine_correct(1,0,0,1,1,-1)
+
+            transform_from_lay_to_crop_by_refind_search =  ~(small_transform*half_crop_translate*~(kek_translate*newtransf*crop_translate))
+
             print('newtransf_refind + translate:',transform_from_lay_to_crop_by_refind_search,sep='\n')
             
             if False:
@@ -1291,7 +1302,7 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
             return super_result
             # TODO
     print('number of minicrops:',len(crop_coords))
-    if(len(crop_coords)<3):
+    if(len(crop_coords)<5):
         coef_a = 1
         coef_b = 0
         coef_c = 0
