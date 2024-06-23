@@ -3,11 +3,21 @@ stages:
   - test
   - collect
 
-# after_script:
-#   - rm -rf result_job*
+default:
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .git/
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SSL_NO_VERIFY: "1"
 
 deploy:
   stage: deploy
@@ -320,3 +330,5 @@ collect-results:
     - execute-job-14
     - execute-job-15
     - execute-job-16
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
