@@ -452,7 +452,9 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
     for angl in angles:
         if find_rotation:
 #            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
+#            newtransf=
             transf_sub, newtransf=transform_and_fill_new_2(substrate,mult_j,mult_i,angle=-angl,bDownscale=True,bReturnTransform=True)
+            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
             if False:
                 fig = plt.figure()
                 fig.add_subplot(1, 2, 1)
