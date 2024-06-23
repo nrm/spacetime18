@@ -2,9 +2,23 @@ stages:
   - deploy
   - test
   - collect
+  - synttest
+  - syntcollect
 
 # after_script:
 #   - rm -rf result_job*
+
+default:
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .git/
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
