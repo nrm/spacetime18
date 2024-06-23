@@ -46,6 +46,18 @@ def abcd_to_Affine_correct(coef_a,coef_b,coef_c,coef_d,x0,y0):
 
     return new_transform
 
+def abcd_to_Affine_correct_from_tuple(tupled_params):
+    coef_a,coef_b,coef_c,coef_d,x0,y0 = tupled_params
+    new_transform = Affine(coef_a, coef_b, x0, coef_c, coef_d, y0)
+
+    return new_transform
+
+def makeAffine(newtransf):
+    return Affine(newtransf[0], newtransf[1], newtransf[2], newtransf[3], newtransf[4], newtransf[5])
+
+def affineTranslate(x0, y0):
+    return abcd_to_Affine_correct(1,0,0,1,x0,y0)
+
 def transform_and_fill_new(F, mult_x=5.,mult_y=9,angle=15):
     tmp=F[0][0]
 #     for _ in range(len(F.shape)-1):
@@ -438,7 +450,7 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
     for angl in angles:
         if find_rotation:
 #            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
-            transf_sub=transform_and_fill_new_2(substrate,mult_j,mult_i,angle=-angl)
+            transf_sub, newtransf=transform_and_fill_new_2(substrate,mult_j,mult_i,angle=-angl,bDownscale=True,bReturnTransform=True)
             if False:
                 fig = plt.figure()
                 fig.add_subplot(1, 2, 1)
@@ -451,6 +463,8 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
             diff_substrate=make_derivative(transf_sub,1,1,deriv_type)
         else:
             diff_substrate=make_derivative(substrate,mult_i,mult_j,deriv_type)
+            
+            newtransf = abcd_to_Affine_correct_from_tuple(get_abcd_from_mults_angl_xy0(mult_j, mult_i, 0, substrate.shape[1]//2, substrate.shape[0]//2))
         #diff_crop=transform_and_fill_new(diff_crop0,1,1,angle=angl)
         # print(diff_substrate.shape)
         # exit(0)
@@ -502,7 +516,7 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
 
         if result[6]<=maxcoin:
             if result[0]<snr:
-                result=(snr,mult_i,mult_j,x,y,angl,maxcoin)
+                result=(snr,mult_i,mult_j,x,y,angl,maxcoin, newtransf)
 #                result=(snr,mult_i,mult_j,x,y,angl,maxcoin)
 
 
@@ -577,12 +591,16 @@ def initial_search(diff_crop, substrate, mults,deriv_type,find_rotation=False,me
         for mult_j in mults[1]:
             parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type,'snr',find_rotation,method))
 
-    snrs=Parallel(n_jobs=16)(delayed(calc_for_mults_new)(*i) for i in parlist)
+    snrs_orig=Parallel(n_jobs=16)(delayed(calc_for_mults_new)(*i) for i in parlist)
 #    snrs=Parallel(n_jobs=1)(delayed(calc_for_mults)(*i) for i in parlist)
 
-    snrs=np.array(snrs)
+    newtransfs = np.array([snrs_tmp[-1] for snrs_tmp in snrs_orig])
+
+    snrs=np.array([snrs_tmp[:-1] for snrs_tmp in snrs_orig])
     snrs[:,-1]=snrs[:,-1]*1000+snrs[:,0]
-    snrs=snrs[np.argsort(snrs[:, -1])][::-1,:]
+    snrs_2=snrs[np.argsort(snrs[:, -1])][::-1,:]
+    newtransfs=newtransfs[np.argsort(snrs[:, -1])][::-1]
+    snrs = snrs_2
     #exit(0)
 
     #print("hello")
@@ -592,7 +610,7 @@ def initial_search(diff_crop, substrate, mults,deriv_type,find_rotation=False,me
     print('time:',end-start)
     if bSaveLog:
         log_file.write('initial_search best SNR:{}\n'.format(snrs[0,0]))
-    return snrs
+    return snrs,newtransfs
 
 def angle_test_fullHD(diff_crop, substrate, angls, mult_i,mult_j, deriv_type):
     #best_ccf=np.zeros(diff_crop.shape)
@@ -665,6 +683,10 @@ def scale_image(image, multx, multy):
 
 
 def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='rgb'):
+    crop2lay = Affine.identity()
+    transform_from_lay_to_crop_by_initial_search = Affine.identity()
+    transform_from_lay_to_crop_by_refind_search = Affine.identity()
+    
     if method == 'ir':
         substrate = substrate[:,:,3:] * 1.0
         crop = crop[:,:,3:] * 1.0
@@ -692,7 +714,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     substrate_sm0 = smooth(substrate,ISmult*6,ISmult*6)
     substrate_sm = substrate_sm0[::ISmult,::ISmult]
     #try:
-    search_results = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type,find_rotation=False,method=method)
+    search_results,newtransfs = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type,find_rotation=False,method=method)
 #    optm,best_snr = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type,find_rotation=False,method=method)
 #    optm,best_snr = initial_search(diff_crop, substrate_sm, mults, deriv_type)
     #except:
@@ -704,13 +726,35 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     for is_r in range(max_snrs):
         if is_r==max_snrs-1:
             print('snr search failed')
-            return [],[],[],0,0,None
+            return [],[],[],0,0,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search
 
         best_snr=search_results[is_r,0]
         optm=search_results[is_r,1:]
+        newtransf=newtransfs[is_r]
+        newtransf = makeAffine(newtransf)
+        
+        x, y = optm[2]*ISmult,optm[3]*ISmult
+        new_shape = ~newtransf * (substrate.shape[1], substrate.shape[0])
+        
+        x_orig, y_orig = (new_shape[0] - y, new_shape[1] - x)
+        crop_translate = affineTranslate(x0=x_orig, y0=y_orig)
+        half_crop_translate = affineTranslate(x0=med_crop.shape[1]//2, y0=med_crop.shape[0]//2)
+        
+        x, y = int(x),int(y)
+        
         print(crop_file_name,' SNR:{:.1f}'.format(best_snr),' mults:',optm)
-        x, y = int(optm[2]*ISmult),int(optm[3]*ISmult)
-        #exit(0)
+        print(crop_file_name+' newtransf:',newtransf,sep='\n')
+        transform_from_lay_to_crop_by_initial_search = ~(half_crop_translate*~(newtransf*crop_translate))
+        print('newtransf + translate:',transform_from_lay_to_crop_by_initial_search,sep='\n')
+        
+        if False:
+            transf_sub=transform_and_fill_by_affine(substrate,transform_from_lay_to_crop_by_initial_search)
+            fig = plt.figure()
+            fig.add_subplot(1, 2, 1)
+            plt.imshow(np.abs(med_crop.astype(float)))
+            fig.add_subplot(1, 2, 2)
+            plt.imshow(np.abs(transf_sub[:med_crop.shape[0],:med_crop.shape[1],0].astype(float)))
+            plt.show()
         
         
         #print('x,y:',x,y)
@@ -763,7 +807,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
         #new_mults=[[optm[0]],[optm[1]]]
         try:
             #optm, snr_refined
-            refined_results = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type,find_rotation=True,method=method)
+            refined_results, newtransfs = initial_search(diff_crop, cropped_substrateHD, new_mults, deriv_type,find_rotation=True,method=method)
         except:
             print('refined search failed')
             continue
@@ -771,9 +815,37 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
             #return [],[],[],0,0
         snr_refined=refined_results[0,0]
         optm=refined_results[0,1:]
-        x, y = int(optm[2]),int(optm[3])
-
+        newtransf=newtransfs[0]
+        newtransf = makeAffine(newtransf)
+        
+        x, y = optm[2], optm[3]
+        new_shape = ~newtransf * (cropped_substrateHD.shape[1], cropped_substrateHD.shape[0])
+        
+        x_orig, y_orig = (new_shape[0] - y, new_shape[1] - x)
+        crop_translate = affineTranslate(x0=x_orig, y0=y_orig)
+        half_crop_translate = affineTranslate(x0=med_crop.shape[1]//2, y0=med_crop.shape[0]//2)
+        
+        print('kek: ', kek1, kek2)
+        kek_translate = affineTranslate(x0=kek2, y0=kek1)
+        
+        x, y = int(x),int(y)
+        
         print('optm1:',optm, ' SNR_refined:',snr_refined, ' initial SNR:',best_snr)
+        print('newtransf_refind:',newtransf,sep='\n')
+        transform_from_lay_to_crop_by_refind_search = ~(half_crop_translate*~(kek_translate*newtransf*crop_translate))
+        print('newtransf_refind + translate:',transform_from_lay_to_crop_by_refind_search,sep='\n')
+        
+        if False:
+            transf_sub=transform_and_fill_by_affine(substrate,transform_from_lay_to_crop_by_refind_search)
+            fig = plt.figure()
+            fig.add_subplot(1, 2, 1)
+            plt.imshow(np.abs(med_crop.astype(float)))
+            fig.add_subplot(1, 2, 2)
+            plt.imshow(np.abs(transf_sub[:med_crop.shape[0],:med_crop.shape[1],0].astype(float)))
+            plt.show()
+        
+        # exit(0)
+        
         if snr_refined <= best_snr+0.5:
             continue
             #return [],[],[],0,0
@@ -849,7 +921,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
      ( d/det_A*x_sdvig - b/det_A*y_sdvig))
     # print("posle:", (x_sdvig, y_sdvig))
     
-    return crop_coords, substrate_coords, optm,kek1 + y_sdvig, kek2 + x_sdvig,crop2lay
+    return crop_coords, substrate_coords, optm,kek1 + y_sdvig, kek2 + x_sdvig,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search
     
 
 def get_abcd_from_mults_angl_xy0(mult_x,mult_y,angle, x0, y0):
@@ -960,6 +1032,53 @@ def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15,bDownscale=True,bRet
     else:
         return G
 
+def transform_and_fill_by_affine(F, affine,bDownscale=True,bReturnTransform=False):
+    y_range, x_range = F.shape[0:2]
+    
+    params = np.array(affine)
+    
+    a, b, c, d, x0, y0 = (params[0], params[1], params[3], params[4], params[2], params[5])
+    
+    det_A = a*d-b*c
+        
+    tmp=F[0][0]
+#    first_dim  = int(1/mult_y*y_range)
+#    second_dim = int(1/mult_x*x_range)
+    first_dim  = int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0))
+    second_dim = int( max(d/det_A,0)*x_range - min(b/det_A,0)*y_range - ( d/det_A*x0 - b/det_A*y0))
+    if bDownscale:
+        first_dim=min(first_dim, y_range)
+        second_dim=min(second_dim, x_range)
+    G = np.zeros(
+        (max(first_dim,1),
+         max(second_dim,1),F.shape[2])
+        , dtype=type(tmp)
+    )
+    
+    u_range, v_range = G.shape[0:2]
+    rows, cols = F.shape[0:2]
+    u_indices, v_indices = np.meshgrid(np.arange(u_range), np.arange(v_range), indexing='ij')
+    # Вычисляем новые индексы
+    tmp_new_v_indices = np.round( a * v_indices + b * u_indices + x0).astype(int)
+    tmp_new_u_indices = np.round( c * v_indices + d * u_indices + y0).astype(int)
+    
+    # Ограничиваем индексы, чтобы они не выходили за границы массива F
+    new_v_indices = np.clip(tmp_new_v_indices, 0, cols - 1)
+    new_u_indices = np.clip(tmp_new_u_indices, 0, rows - 1)
+    
+    # Формируем выходной массив G
+    G[u_indices, v_indices,:] = F[new_u_indices, new_v_indices,:]
+        
+    G[np.where(tmp_new_u_indices < 0)] = 0
+    G[np.where(tmp_new_v_indices < 0)] = 0
+    G[np.where(tmp_new_u_indices >= rows)] = 0
+    G[np.where(tmp_new_v_indices >= cols)] = 0
+    if bReturnTransform:
+        transf = abcd_to_Affine_correct(a,b,c,d,x0,y0)
+        return G,transf
+    else:
+        return G
+
 def prepare_substrate(substrate_path):
     if not os.path.exists('1_20_geotiff'):
         os.makedirs('1_20_geotiff')
@@ -1012,6 +1131,9 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
     end_time = datetime.now(timezone.utc)
     result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+    start_time = result["start_time"]
+    # print(type(end_time), type(start_time))
+    print('time', (end_time - start_time).total_seconds())
     result.pop("start_time")
     result_data.append(result)
 
@@ -1066,10 +1188,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         process_method='rgb'
 
     method=process_method
-    crop_coords, substrate_coords, optm,x_,y_,crop2lay = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+    crop_coords, substrate_coords, optm,x_,y_,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
     if(abs(x_)+abs(y_)==0):
         method='ir' if process_method == 'rgb' else 'rgb'
-        crop_coords, substrate_coords, optm,x_,y_,crop2lay = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+        crop_coords, substrate_coords, optm,x_,y_,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
         if(abs(x_)+abs(y_)==0):
             # continue
             # pass
@@ -1212,7 +1334,13 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     new_transform = abcd_to_Affine(coef_a,coef_b,coef_c,coef_d, x_0,y_0)
     small_transform = abcd_to_Affine_correct(1,0,0,1,1,-1)   
     new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
+    
+    new_transform_by_initial_search = transform*(transform_from_lay_to_crop_by_initial_search)
+    new_transform_by_refind_search = transform*(transform_from_lay_to_crop_by_refind_search)
+    
 #    new_transform = crop2lay*new_transform*transform
+    
+    stem_crop, suffix_crop = path.splitext(os.path.basename(crop_file_name))
     
     # src = rasterio.open(crop_file_name_0)
     src = rasterio.open(crop_file_name)
@@ -1233,7 +1361,53 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
         os.makedirs(os.path.join('1_20_geotiff', stem_out))
 
-    tile_path = os.path.join('1_20_geotiff', stem_out, os.path.basename(crop_file_name))
+    tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_mini_crop' + suffix_crop)
+    with rasterio.open(tile_path, 'w', **profile) as dst:
+        dst.write(data)
+        print(f"Saved tile: {tile_path}")
+    
+    src = rasterio.open(crop_file_name)
+    data = src.read()            
+    num_bands = src.count
+    profile = src.profile
+    profile.update({
+        'driver': 'GTiff',
+        'crs': 'EPSG:32637',
+        'transform': new_transform_by_initial_search,
+        'count': num_bands,
+        'width':crop.shape[1],
+        'height':crop.shape[0]
+    })
+    
+    stem_out, suffix_out = path.splitext(outputname)
+    
+    if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
+        os.makedirs(os.path.join('1_20_geotiff', stem_out))
+
+    tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_initial_search' + suffix_crop)
+    with rasterio.open(tile_path, 'w', **profile) as dst:
+        dst.write(data)
+        print(f"Saved tile: {tile_path}")
+    
+    src = rasterio.open(crop_file_name)
+    data = src.read()            
+    num_bands = src.count
+    profile = src.profile
+    profile.update({
+        'driver': 'GTiff',
+        'crs': 'EPSG:32637',
+        'transform': new_transform_by_refind_search,
+        'count': num_bands,
+        'width':crop.shape[1],
+        'height':crop.shape[0]
+    })
+    
+    stem_out, suffix_out = path.splitext(outputname)
+    
+    if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
+        os.makedirs(os.path.join('1_20_geotiff', stem_out))
+
+    tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_refind_search' + suffix_crop)
     with rasterio.open(tile_path, 'w', **profile) as dst:
         dst.write(data)
         print(f"Saved tile: {tile_path}")
@@ -1275,6 +1449,8 @@ if __name__ == "__main__":
     substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
     for i in range(0,5):
         for j in range(0,4):
+    # for i in range(0,1):
+    #     for j in range(0,1):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
             result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
             end_time = datetime.now(timezone.utc)
