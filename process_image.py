@@ -279,7 +279,7 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut,method = 'rgb'):
 
             #print(i, j, x, y, snr)
 #            if snr > 10:
-            if (snr > 8) and \
+            if (snr > 7) and \
                 np.abs(x + i * cs[0] - cropped_substrate.shape[0] + cs[0]//2)<cs[0] and \
                 np.abs(y + j * cs[1] - cropped_substrate.shape[1] + cs[1]//2)<cs[1]:
                     try:
@@ -1252,9 +1252,20 @@ def select_optimal_transform(crop,substrate,transforms,method):
         print(transform)
         cropm=np.zeros(substratet.shape,dtype=complex)
         diff_sub=make_derivative(substratet,1,1,deriv_type)
-        cropm[:diff_crop.shape[0],:diff_crop.shape[1],:diff_crop.shape[2]]=diff_crop
+        cropm[cropm.shape[0]//2 - diff_crop.shape[0]//2:cropm.shape[0]//2 + diff_crop.shape[0] - diff_crop.shape[0]//2,
+              cropm.shape[1]//2 - diff_crop.shape[1]//2:cropm.shape[1]//2 + diff_crop.shape[1] - diff_crop.shape[1]//2,:diff_crop.shape[2]]=diff_crop
         ccf = np.abs(cross_correlate_2d(cropm,diff_sub))
+        if method=='ir':
+            ccf=ccf[:,:,0]
+        else:
+            ccf=np.sum(ccf[:,:,:3],axis=2)
         res_snr[i]=np.max(ccf)/np.mean(ccf)
+        x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+        #print(x, y)
+        #print(ccf.shape[0]-x - diff_crop.shape[0]//2,ccf.shape[1]- y - diff_crop.shape[1]//2)
+        if abs(ccf.shape[0]-x - diff_crop.shape[0]//2) + abs(ccf.shape[1]- y - diff_crop.shape[1]//2)>20:
+            res_snr[i]=0
+        #print(~transform*(ccf.shape[0]-x,ccf.shape[1]- y))
         i+=1
     print('recheck snrs:',res_snr)
     return transforms[np.argmax(res_snr)]
@@ -1573,8 +1584,8 @@ if __name__ == "__main__":
     substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
 #    for i in range(0,5):
 #        for j in range(0,4):
-    for i in range(0,1):
-        for j in range(0,1):
+    for i in range(1,2):
+        for j in range(1,2):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
             result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
             end_time = datetime.now(timezone.utc)
