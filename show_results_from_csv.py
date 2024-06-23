@@ -13,7 +13,9 @@ tiff_files = ['layouts/layout_2021-06-15.tif',
               'layouts/layout_2022-03-17.tif']
 
 
-results_csv_path='res/11/combined_result.csv'
+results_csv_path='res/18/combined_result.csv'
+#results_csv_path='res/17/combined_syntresult.csv'
+
 
 df=pd.read_csv(results_csv_path,delimiter=';')
 
@@ -42,7 +44,10 @@ for tiff_file in tiff_files:
                 substrate[:,:,i]=substrate[:,:,i]/sub_max*maxcolor                
 
         fig.add_subplot(1, 4, ii)
-        plt.imshow(substrate[:,:substrate.shape[1]//2,:3])
+        if 'combined_syntresult' in results_csv_path:
+            plt.imshow(substrate[:,:,:3])
+        else:
+            plt.imshow(substrate[:,:substrate.shape[1]//2,:3])
         from matplotlib.lines import Line2D
         def process_box(coords_strings):
             coords = []
