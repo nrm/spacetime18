@@ -1170,7 +1170,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
 def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname):
     super_result = {}
     # «layout_name» имя подложки,
-    # «crop_name» имя снимка,  
+    # «crop_name» имя снимка,   
     # «ul», «ur», «br», «bl», где лево-верх, право-верх, право-низ, лево-низ координаты, 
     # «crs» координатная система в формате «EPSG:{12345}», 
     # «start» и «end»
@@ -1428,6 +1428,7 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
 
 
 if __name__ == "__main__":
+    # run_test
     # substrate_orig = tifffile.imread('layouts/layout_2021-06-15.tif')   #
     # substrate_orig = tifffile.imread('layouts/layout_2021-08-16.tif')   #original
     # substrate_orig = tifffile.imread('layouts/layout_2021-10-10.tif')
