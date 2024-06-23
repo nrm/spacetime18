@@ -683,7 +683,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmult=4
+    ISmult=2
     if ISmult!=1:
         med_crop_sm = smooth(med_crop,ISmult,ISmult)      
     else:
@@ -1012,6 +1012,7 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
     end_time = datetime.now(timezone.utc)
     result["end"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+    result.pop("start_time")
     result_data.append(result)
 
     try:
@@ -1281,7 +1282,9 @@ if __name__ == "__main__":
             start_time = result["start_time"]
             # print(type(end_time), type(start_time))
             print('time', (end_time - start_time).total_seconds())
+            print(result)
             result.pop("start_time")
+            print(result)
             result_data.append(result)
     
     try:
