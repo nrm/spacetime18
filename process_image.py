@@ -20,7 +20,7 @@ from datetime import datetime, timezone, date
 
 # from geotiff import GeoTiff
 
-SMOOTH_SUBSTRATE=6
+SMOOTH_SUBSTRATE=10
 DERIV_TYPE='complex'
 ShowPlot = False
 #ShowPlot = True
@@ -1382,10 +1382,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         file_coord.flush()
 
 #    new_transform = crop2lay*new_transform*transform
-    super_result["ul"] = str(int(coords[0][0]*1000)/1000) + '_' + str(int(coords[0][1]*1000)/1000)
-    super_result["ur"] = str(int(coords[3][0]*1000)/1000) + '_' + str(int(coords[3][1]*1000)/1000)
-    super_result["br"] = str(int(coords[2][0]*1000)/1000) + '_' + str(int(coords[2][1]*1000)/1000)
-    super_result["bl"] = str(int(coords[1][0]*1000)/1000) + '_' + str(int(coords[1][1]*1000)/1000)
+    super_result["ul"] = '{:.3f}_{:.3f}'.format(coords[0][0],coords[0][1])
+    super_result["ur"] = '{:.3f}_{:.3f}'.format(coords[3][0],coords[3][1])
+    super_result["br"] = '{:.3f}_{:.3f}'.format(coords[2][0],coords[2][1])
+    super_result["bl"] = '{:.3f}_{:.3f}'.format(coords[1][0],coords[1][1])
     
     super_result["crs"] = 'EPSG:32637'
     
