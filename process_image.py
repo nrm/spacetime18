@@ -20,7 +20,7 @@ from datetime import datetime, timezone, date
 
 # from geotiff import GeoTiff
 
-SMOOTH_SUBSTRATE=10
+SMOOTH_SUBSTRATE=4
 DERIV_TYPE='complex'
 ShowPlot = False
 #ShowPlot = True
