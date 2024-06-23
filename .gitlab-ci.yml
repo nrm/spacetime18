@@ -2,6 +2,8 @@ stages:
   - deploy
   - test
   - collect
+  - synttest
+  - syntcollect
 
 # after_script:
 #   - rm -rf result_job*
