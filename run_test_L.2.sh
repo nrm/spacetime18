@@ -19,8 +19,6 @@ source venv/bin/activate
 pip install -r requirements.txt
 # source ~/venv/bin/activate
 
-# l="/opt/spacetime/layouts/layout_2021-08-16.tif"
-# l="/opt/spacetime/layouts/layout_2021-06-15.tif"
 files=(
     "/opt/spacetime/1_20/crop_2_2_0000.tif"
     "/opt/spacetime/1_20/crop_2_3_0000.tif"
