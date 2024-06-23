@@ -707,7 +707,8 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmults=[2,1]
+    ISmults=[2]
+#    ISmults=[2,1]
 
     #ISmult=2
     snr_refined = 0
@@ -873,7 +874,8 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #plt.imshow(np.abs(crop_HD[:,:,0].astype(float)))
     #fig.add_subplot(1, 2, 2)
 
-    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],-optm[-2],bDownscale=False,bReturnTransform=True)
+    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],0,bDownscale=False,bReturnTransform=True)
+#    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],-optm[-2],bDownscale=False,bReturnTransform=True)
     #print('crop_HD new:',crop_HD.shape)
     #plt.imshow(np.abs(crop_HD[:,:,0].astype(float)))
     #plt.show()
@@ -1226,10 +1228,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     proc_method=method
     crop_coords, substrate_coords, optm,x_,y_,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
     if(abs(x_)+abs(y_)==0):
-        method='ir' if process_method == 'rgb' else 'rgb'
-        proc_method=method
-        crop_coords, substrate_coords, optm,x_,y_,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
-        if(abs(x_)+abs(y_)==0):
+    #    method='ir' if process_method == 'rgb' else 'rgb'
+    #    proc_method=method
+    #    crop_coords, substrate_coords, optm,x_,y_,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
+    #    if(abs(x_)+abs(y_)==0):
             # continue
             # pass
             super_result["ul"] = str(0) + '_' + str(0)
