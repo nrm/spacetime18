@@ -18,15 +18,15 @@ pip install -r requirements.txt
 
 files=(
     "/opt/spacetime/synt_tiles/crop_3_6_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_3_7_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_0_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_1_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_2_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_3_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_4_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_5_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_6_0000.tif"
-    "/opt/spacetime/synt_tiles/crop_4_7_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_3_7_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_0_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_1_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_2_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_3_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_4_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_5_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_6_0000.tif"
+    # "/opt/spacetime/synt_tiles/crop_4_7_0000.tif"
 )
 
 for crop_file in "${files[@]}"
