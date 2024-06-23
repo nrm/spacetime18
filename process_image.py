@@ -20,6 +20,8 @@ from datetime import datetime, timezone, date
 
 # from geotiff import GeoTiff
 
+SMOOTH_SUBSTRATE=6
+DERIV_TYPE='complex'
 ShowPlot = False
 #ShowPlot = True
 bSaveLog = False
@@ -705,13 +707,13 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmult=4
+    ISmult=2
     if ISmult!=1:
         med_crop_sm = smooth(med_crop,ISmult,ISmult)      
     else:
         med_crop_sm = med_crop*1.0
     diff_crop_sm = make_derivative(med_crop_sm,ISmult,ISmult,deriv_type)
-    substrate_sm0 = smooth(substrate,ISmult*6,ISmult*6)
+    substrate_sm0 = smooth(substrate,ISmult*SMOOTH_SUBSTRATE,ISmult*SMOOTH_SUBSTRATE)
     substrate_sm = substrate_sm0[::ISmult,::ISmult]
     #try:
     search_results,newtransfs = initial_search(diff_crop_sm, substrate_sm, mults, deriv_type,find_rotation=False,method=method)
@@ -1167,6 +1169,32 @@ def main_process_func(substrate_path, crop_file_name_0, outputname):
     
     return result
 
+
+def select_optimal_transform(crop,substrate,transforms,method):
+    if method == 'ir':
+        substrate = substrate[:,:,3:] * 1.0
+        crop = crop[:,:,3:] * 1.0
+    deriv_type=DERIV_TYPE
+    med_crop = crop*1.0
+    diff_crop = make_derivative(med_crop,1,1,deriv_type)
+    substrate_sm0 = smooth(substrate,SMOOTH_SUBSTRATE,SMOOTH_SUBSTRATE)
+
+    res_snr=np.zeros(len(transforms))
+    i=0
+    for transform in transforms:
+        substratet = transform_and_fill_by_affine(substrate_sm0,transform)
+        print(substratet.shape)
+        print(substrate_sm0.shape)
+        print(transform)
+        cropm=np.zeros(substratet.shape,dtype=complex)
+        diff_sub=make_derivative(substratet,1,1,deriv_type)
+        cropm[:diff_crop.shape[0],:diff_crop.shape[1],:diff_crop.shape[2]]=diff_crop
+        ccf = np.abs(cross_correlate_2d(cropm,diff_sub))
+        res_snr[i]=np.max(ccf)/np.mean(ccf)
+        i+=1
+    print('recheck snrs:',res_snr)
+    return transforms[np.argmax(res_snr)]
+
 def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname):
     super_result = {}
     # «layout_name» имя подложки,
@@ -1188,9 +1216,11 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         process_method='rgb'
 
     method=process_method
+    proc_method=method
     crop_coords, substrate_coords, optm,x_,y_,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
     if(abs(x_)+abs(y_)==0):
         method='ir' if process_method == 'rgb' else 'rgb'
+        proc_method=method
         crop_coords, substrate_coords, optm,x_,y_,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search = process_crop(crop, crop_file_name, substrate, mults,refined_mults,method=method)
         if(abs(x_)+abs(y_)==0):
             # continue
@@ -1290,8 +1320,10 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
                 maxiy = max(maxiy, y)
         
     #pixels = [(x1, y1, 'ul'), (x2, y2, 'll'), (x3, y3, 'lr'), (x4, y4, 'ur')]
-    pixels1 = [(0, 0, 'lr'), (0, crop.shape[1], 'll'), (crop.shape[0], crop.shape[1], 'ul'), (crop.shape[0], 0, 'ur')]
+#    pixels1 = [(0, 0, 'lr'), (0, crop.shape[1]-1, 'll'), (crop.shape[0]-1, crop.shape[1]-1, 'ul'), (crop.shape[0]-1, 0, 'ur')]
 #    pixels1 = [(x_0, y_0, 'lr'), (x_0 - crop.shape[1], y_0, 'll'), (x_0-crop.shape[1], y_0-crop.shape[0], 'ul'), (x_0, y_0-crop.shape[0], 'ur')]
+    pixels1 = [(0, 0, 'center'), (0, crop.shape[0]-1, 'center'), (crop.shape[1]-1, crop.shape[0]-1, 'center'), (crop.shape[1]-1, 0, 'center')]
+#    pixels1 = [(0, 0, 'center'), (0, crop.shape[0]-1, 'center'), (crop.shape[1]-1, crop.shape[0]-1, 'center'), (crop.shape[1]-1, 0, 'center')]
     
     coords = []
     
@@ -1324,11 +1356,21 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
 #    small_transform = abcd_to_Affine_correct((crop.shape[0]-1)/crop.shape[0],0,0,(crop.shape[1]-1)/crop.shape[1],1,-1)   #!
 
     new_transform = abcd_to_Affine(coef_a,coef_b,coef_c,coef_d, x_0,y_0)
+
     small_transform = abcd_to_Affine_correct(1,0,0,1,1,-1)   
-    new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
+
+    minicrop_transform = (new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
+
+    optimal_transform = select_optimal_transform(crop,sub0,[minicrop_transform,transform_from_lay_to_crop_by_refind_search,transform_from_lay_to_crop_by_initial_search],proc_method)
+
+#    new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
+
+    new_transform = transform*optimal_transform
     
     new_transform_by_initial_search = transform*(transform_from_lay_to_crop_by_initial_search)
     new_transform_by_refind_search = transform*(transform_from_lay_to_crop_by_refind_search)
+
+    print('new_transform:',new_transform)
 
     for pixel in pixels1:
         spatial_coordinate = rasterio.transform.xy(new_transform, pixel[1], pixel[0], offset=pixel[2])
@@ -1375,6 +1417,13 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     with rasterio.open(tile_path, 'w', **profile) as dst:
         dst.write(data)
         print(f"Saved tile: {tile_path}")
+
+    with rasterio.open(tile_path) as src:
+        saved_transform = src.transform
+
+    for pixel in pixels1:
+        spatial_coordinate = rasterio.transform.xy(saved_transform, pixel[1], pixel[0], offset=pixel[2])
+        print("spatial_coordinate from saved_transform:", spatial_coordinate)
     
     src = rasterio.open(crop_file_name)
     data = src.read()            
@@ -1458,10 +1507,10 @@ if __name__ == "__main__":
     print(substrate_path)
     
     substrate, mults, refined_mults, file_coord, transform, super_string_partial_name_of_substrate = prepare_substrate(substrate_path)
-    for i in range(0,5):
-        for j in range(0,4):
-    # for i in range(0,1):
-    #     for j in range(0,1):
+#    for i in range(0,5):
+#        for j in range(0,4):
+    for i in range(0,1):
+        for j in range(0,1):
             crop_file_name_0='1_20/crop_{}_{}_0000.tif'.format(i,j)
             result = new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_name_0, start_time, file_coord, transform, super_string_partial_name_of_substrate, outputname)
             end_time = datetime.now(timezone.utc)
