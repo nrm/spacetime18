@@ -266,10 +266,10 @@ def ccf_repro_images_fullHD(diff_crop, cropped_substrate, ncut,method = 'rgb'):
             if method=='ir':
                 ccf = ccf[:,:,0]
                 # ccf = ccf[:,:,3]
-                try:
-                    x, y = find_subpixel_ccf_max(ccf)
-                except:
-                    x, y = np.unravel_index(ccf.argmax(), ccf.shape)
+                #try:
+                #    x, y = find_subpixel_ccf_max(ccf)
+                #except:
+                x, y = np.unravel_index(ccf.argmax(), ccf.shape)
                 snr = np.max(ccf) / np.mean(ccf)
 
             #print(i, j, x, y, snr)
@@ -731,7 +731,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #    best_ccf = calc_for_mults(diff_crop, substrate, optm[0],optm[1], deriv_type,return_type='ccf')
         max_snrs=14
         for is_r in range(max_snrs):
-            if is_r==max_snrs-1:
+            if is_r==max_snrs-1 and ISmult == ISmults[-1]:
                 print('snr search failed')
                 return [],[],[],0,0,crop2lay,transform_from_lay_to_crop_by_initial_search,transform_from_lay_to_crop_by_refind_search
 
@@ -1370,9 +1370,9 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
 
     optimal_transform = select_optimal_transform(crop,sub0,[minicrop_transform,transform_from_lay_to_crop_by_refind_search,transform_from_lay_to_crop_by_initial_search],proc_method)
 
-    new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
+#    new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
 
-#    new_transform = transform*optimal_transform
+    new_transform = transform*optimal_transform
     
     new_transform_by_initial_search = transform*(transform_from_lay_to_crop_by_initial_search)
     new_transform_by_refind_search = transform*(transform_from_lay_to_crop_by_refind_search)
