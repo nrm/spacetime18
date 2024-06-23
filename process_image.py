@@ -683,7 +683,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmult=2
+    ISmult=4
     if ISmult!=1:
         med_crop_sm = smooth(med_crop,ISmult,ISmult)      
     else:
