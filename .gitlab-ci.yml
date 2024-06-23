@@ -3,9 +3,6 @@ stages:
   - test
   - collect
 
-# after_script:
-#   - rm -rf result_job*
-
 default:
   retry:
     max: 2
