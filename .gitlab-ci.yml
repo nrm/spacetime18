@@ -8,6 +8,11 @@ stages:
 # after_script:
 #   - rm -rf result_job*
 
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .git/
+
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
