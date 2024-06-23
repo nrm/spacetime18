@@ -20,7 +20,7 @@ from datetime import datetime, timezone, date
 
 # from geotiff import GeoTiff
 
-SMOOTH_SUBSTRATE=4
+SMOOTH_SUBSTRATE=6
 DERIV_TYPE='complex'
 ShowPlot = False
 #ShowPlot = True
@@ -1363,9 +1363,9 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
 
     optimal_transform = select_optimal_transform(crop,sub0,[minicrop_transform,transform_from_lay_to_crop_by_refind_search,transform_from_lay_to_crop_by_initial_search],proc_method)
 
-#    new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
+    new_transform = transform*(new_transform*(small_transform*(crop2lay.__invert__()*small_transform)))
 
-    new_transform = transform*optimal_transform
+#    new_transform = transform*optimal_transform
     
     new_transform_by_initial_search = transform*(transform_from_lay_to_crop_by_initial_search)
     new_transform_by_refind_search = transform*(transform_from_lay_to_crop_by_refind_search)
