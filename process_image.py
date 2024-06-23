@@ -453,15 +453,18 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
         if find_rotation:
 #            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
 #            newtransf=
+            #angl=10
             transf_sub, newtransf=transform_and_fill_new_2(substrate,mult_j,mult_i,angle=-angl,bDownscale=True,bReturnTransform=True)
-            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
+#            transf_sub=transform_and_fill_new(substrate,mult_j,mult_i,angle=angl)
+            #plt.plot([1,2],[2,3])
+            #plt.show()
             if False:
                 fig = plt.figure()
                 fig.add_subplot(1, 2, 1)
                 print(np.sum(transf_sub[:,:,0]))
                 plt.imshow(np.abs(transf_sub[:,:,0].astype(float)))
                 fig.add_subplot(1, 2, 2)
-                plt.imshow(np.abs(transf_sub_2))
+                plt.imshow(np.abs(transf_sub_2[:,:,0].astype(float)))
                 plt.show()
 
             diff_substrate=make_derivative(transf_sub,1,1,deriv_type)
@@ -595,7 +598,10 @@ def initial_search(diff_crop, substrate, mults,deriv_type,find_rotation=False,me
         for mult_j in mults[1]:
             parlist.append((diff_crop,substrate,mult_i,mult_j,deriv_type,'snr',find_rotation,method))
 
-    snrs_orig=Parallel(n_jobs=16)(delayed(calc_for_mults_new)(*i) for i in parlist)
+    if find_rotation:
+        snrs_orig=Parallel(n_jobs=16)(delayed(calc_for_mults_new)(*i) for i in parlist)
+    else:
+        snrs_orig=Parallel(n_jobs=16)(delayed(calc_for_mults_new)(*i) for i in parlist)
 #    snrs=Parallel(n_jobs=1)(delayed(calc_for_mults)(*i) for i in parlist)
 
     newtransfs = np.array([snrs_tmp[-1] for snrs_tmp in snrs_orig])
@@ -709,7 +715,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #diff_crop[0, :]=np.zeros(diff_crop.shape[1])
     diff_crop = make_derivative(med_crop,1,1,deriv_type)
 
-    ISmults=[2]
+    ISmults=[4]
 #    ISmults=[2,1]
 
     #ISmult=2
@@ -876,8 +882,8 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
     #plt.imshow(np.abs(crop_HD[:,:,0].astype(float)))
     #fig.add_subplot(1, 2, 2)
 
-    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],0,bDownscale=False,bReturnTransform=True)
-#    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],-optm[-2],bDownscale=False,bReturnTransform=True)
+#    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],0,bDownscale=False,bReturnTransform=True)
+    crop_HD, crop2lay = transform_and_fill_new_2(med_crop,1/optm[1],1/optm[0],-optm[-2],bDownscale=False,bReturnTransform=True)
     #print('crop_HD new:',crop_HD.shape)
     #plt.imshow(np.abs(crop_HD[:,:,0].astype(float)))
     #plt.show()
@@ -999,6 +1005,33 @@ def get_abcd_from_mults_angl_xy0(mult_x,mult_y,angle, x0, y0):
     
     return (a, b, c, d, x0, y0)
 
+
+def get_transformed_shape(transform, width, height):
+    # Define the corners of the source image
+    corners = np.array([
+        [0, 0],
+        [width, 0],
+        [width, height],
+        [0, height]
+    ])
+    
+    # Transform the corners using the affine transformation
+    print(corners)
+    transformed_corners = np.array([transform * (x, y) for x, y in corners])
+    print(transformed_corners)
+    
+    # Extract the min and max x and y coordinates
+    min_x = np.min(transformed_corners[:, 0])
+    max_x = np.max(transformed_corners[:, 0])
+    min_y = np.min(transformed_corners[:, 1])
+    max_y = np.max(transformed_corners[:, 1])
+    
+    # Calculate the new width and height
+    transformed_width = max_x - min_x
+    transformed_height = max_y - min_y
+    print(transformed_height,transformed_width)
+    return int(transformed_width), int(transformed_height)
+
 # вращение вокруг центра с почти допиленным обрезанием
 def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15,bDownscale=True,bReturnTransform=False):
     y_range, x_range = F.shape[0:2]
@@ -1007,11 +1040,19 @@ def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15,bDownscale=True,bRet
     
     det_A = a*d-b*c
         
+#    transf0 = abcd_to_Affine(a,b,c,d,x0,y0)
+#    transf0 = abcd_to_Affine_correct(a,b,c,d,x0,y0)
     tmp=F[0][0]
-#    first_dim  = int(1/mult_y*y_range)
-#    second_dim = int(1/mult_x*x_range)
-    first_dim  = int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0))
-    second_dim = int( max(d/det_A,0)*x_range - min(b/det_A,0)*y_range - ( d/det_A*x0 - b/det_A*y0))
+
+    #first_dim,second_dim = get_transformed_shape(~transf0,y_range,x_range)
+    #print(bDownscale)
+    first_dim  = int(1/mult_y*y_range)
+    second_dim = int(1/mult_x*x_range)
+    print(first_dim,second_dim)
+#    first_dim  = int(-c/det_A*x_range + a/det_A*y_range - (-c/det_A*x0 + a/det_A*y0))
+#    second_dim = int( d/det_A*x_range - b/det_A*y_range - ( d/det_A*x0 - b/det_A*y0))
+#    first_dim  = int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0))
+#    second_dim = int( max(d/det_A,0)*x_range - min(b/det_A,0)*y_range - ( d/det_A*x0 - b/det_A*y0))
     if bDownscale:
         first_dim=min(first_dim, y_range)
         second_dim=min(second_dim, x_range)
