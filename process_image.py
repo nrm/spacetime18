@@ -1036,7 +1036,8 @@ def get_transformed_shape(transform, width, height):
 def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15,bDownscale=True,bReturnTransform=False):
     y_range, x_range = F.shape[0:2]
     
-    a, b, c, d, x0, y0 = get_abcd_from_mults_angl_xy0(mult_x, mult_y, angle, x_range//2, y_range//2)
+    a, b, c, d, x0, y0 = get_abcd_from_mults_angl_xy0(mult_x, mult_y, angle, 0, 0)
+#    a, b, c, d, x0, y0 = get_abcd_from_mults_angl_xy0(mult_x, mult_y, angle, x_range//2, y_range//2)
     
     det_A = a*d-b*c
         
@@ -1048,7 +1049,7 @@ def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15,bDownscale=True,bRet
     #print(bDownscale)
     first_dim  = int(1/mult_y*y_range)
     second_dim = int(1/mult_x*x_range)
-    print(first_dim,second_dim)
+#    print(first_dim,second_dim)
 #    first_dim  = int(-c/det_A*x_range + a/det_A*y_range - (-c/det_A*x0 + a/det_A*y0))
 #    second_dim = int( d/det_A*x_range - b/det_A*y_range - ( d/det_A*x0 - b/det_A*y0))
 #    first_dim  = int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0))
