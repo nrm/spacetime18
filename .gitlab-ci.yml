@@ -1,14 +1,19 @@
-stages:
-  - deploy
-  - test
-  - collect
-
 default:
   retry:
     max: 2
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
+
+stages:
+  - deploy
+  - test
+  - collect
+  - synttest
+  - syntcollect
+
+# after_script:
+#   - rm -rf result_job*
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -332,3 +337,294 @@ collect-results:
     - execute-job-16
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /.*run_test.*/'
+
+
+execute-syntjob-1:
+  stage: synttest
+  script:
+    - echo "Executing test 1..."
+    - mkdir -p result_syntjob1
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob1.csv"
+    - bash ./run_synt_test_L.1.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob1/
+  artifacts:
+    paths:
+      - result_syntjob1/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-2:
+  stage: synttest
+  script:
+    - echo "Executing test 2..."
+    - mkdir -p result_syntjob2
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob2.csv"
+    - bash ./run_synt_test_L.2.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob2/
+  artifacts:
+    paths:
+      - result_syntjob2/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-3:
+  stage: synttest
+  script:
+    - echo "Executing test 3..."
+    - mkdir -p result_syntjob3
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob3.csv"
+    - bash ./run_synt_test_L.1.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob3/
+  artifacts:
+    paths:
+      - result_syntjob3/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-4:
+  stage: synttest
+  script:
+    - echo "Executing test 4..."
+    - mkdir -p result_syntjob4
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob4.csv"
+    - bash ./run_synt_test_L.2.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob4/
+  artifacts:
+    paths:
+      - result_syntjob4/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-5:
+  stage: synttest
+  script:
+    - echo "Executing test 5..."
+    - mkdir -p result_syntjob5
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob5.csv"
+    - bash ./run_synt_test_L.1.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob5/
+  artifacts:
+    paths:
+      - result_syntjob5/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-6:
+  stage: synttest
+  script:
+    - echo "Executing test 6..."
+    - mkdir -p result_syntjob6
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob6.csv"
+    - bash ./run_synt_test_L.2.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob6/
+  artifacts:
+    paths:
+      - result_syntjob6/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-7:
+  stage: synttest
+  script:
+    - echo "Executing test 7..."
+    - mkdir -p result_syntjob7
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob7.csv"
+    - bash ./run_synt_test_L.1.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob7/
+  artifacts:
+    paths:
+      - result_syntjob7/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-8:
+  stage: synttest
+  script:
+    - echo "Executing test 8..."
+    - mkdir -p result_syntjob8
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob8.csv"
+    - bash ./run_synt_test_L.2.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob8/
+  artifacts:
+    paths:
+      - result_syntjob8/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-9:
+  stage: synttest
+  script:
+    - echo "Executing test 9..."
+    - mkdir -p result_syntjob9
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob9.csv"
+    - bash ./run_synt_test_L.3.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob9/
+  artifacts:
+    paths:
+      - result_syntjob9/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-10:
+  stage: synttest
+  script:
+    - echo "Executing test 10..."
+    - mkdir -p result_syntjob10
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob10.csv"
+    - bash ./run_synt_test_L.4.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-06-15.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob10/
+  artifacts:
+    paths:
+      - result_syntjob10/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-11:
+  stage: synttest
+  script:
+    - echo "Executing test 11..."
+    - mkdir -p result_syntjob11
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob11.csv"
+    - bash ./run_synt_test_L.3.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob11/
+  artifacts:
+    paths:
+      - result_syntjob11/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-12:
+  stage: synttest
+  script:
+    - echo "Executing test 12..."
+    - mkdir -p result_syntjob12
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob12.csv"
+    - bash ./run_synt_test_L.4.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-08-16.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob12/
+  artifacts:
+    paths:
+      - result_syntjob12/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-13:
+  stage: synttest
+  script:
+    - echo "Executing test 13..."
+    - mkdir -p result_syntjob13
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob13.csv"
+    - bash ./run_synt_test_L.3.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob13/
+  artifacts:
+    paths:
+      - result_syntjob13/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-14:
+  stage: synttest
+  script:
+    - echo "Executing test 14..."
+    - mkdir -p result_syntjob14
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob14.csv"
+    - bash ./run_synt_test_L.4.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2021-10-10.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob14/
+  artifacts:
+    paths:
+      - result_syntjob14/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-15:
+  stage: synttest
+  script:
+    - echo "Executing test 15..."
+    - mkdir -p result_syntjob15
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob15.csv"
+    - bash ./run_synt_test_L.3.sh  "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob15/
+  artifacts:
+    paths:
+      - result_syntjob15/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+execute-syntjob-16:
+  stage: synttest
+  script:
+    - echo "Executing test 16..."
+    - mkdir -p result_syntjob16
+    - RESULT_FILE="result_${CI_COMMIT_SHORT_SHA}_syntjob16.csv"
+    - bash ./run_synt_test_L.4.sh "$RESULT_FILE" /opt/spacetime/layouts/layout_2022-03-17.tif "project_${CI_COMMIT_SHORT_SHA}"
+    - mv result*.csv result_syntjob16/
+  artifacts:
+    paths:
+      - result_syntjob16/
+    expire_in: 1 week
+  timeout: 4h
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
+
+collect-syntresults:
+  stage: syntcollect
+  script:
+    - rm -rf combined_syntresults || echo "No exist dir"
+    - mkdir -p combined_syntresults
+    - echo "layout_name;crop_name;ul;ur;br;bl;crs;start;end" > combined_syntresults/combined_syntresult.csv
+    - cp result_syntjob?/result_${CI_COMMIT_SHORT_SHA}_syntjob?.csv combined_syntresults/ || echo "No results from job 1"
+    - echo "Processing combined results..."
+    - grep -v "layout_name" result_syntjob*/result_${CI_COMMIT_SHORT_SHA}_syntjob*.csv |  cut -d':' -f2- >> combined_syntresults/combined_syntresult.csv
+    - ls -R combined_syntresults/
+  artifacts:
+    paths:
+      - combined_syntresults/
+    expire_in: 1 week
+  needs:
+    - execute-syntjob-1
+    - execute-syntjob-2
+    - execute-syntjob-3
+    - execute-syntjob-4
+    - execute-syntjob-5
+    - execute-syntjob-6
+    - execute-syntjob-7
+    - execute-syntjob-8
+    - execute-syntjob-9
+    - execute-syntjob-10
+    - execute-syntjob-11
+    - execute-syntjob-12
+    - execute-syntjob-13
+    - execute-syntjob-14
+    - execute-syntjob-15
+    - execute-syntjob-16
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /.*run_synttest.*/'
