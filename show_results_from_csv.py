@@ -13,8 +13,8 @@ tiff_files = ['layouts/layout_2021-06-15.tif',
               'layouts/layout_2022-03-17.tif']
 
 
-results_csv_path='res/18/combined_result.csv'
-#results_csv_path='res/17/combined_syntresult.csv'
+results_csv_path='res/23/combined_result.csv'
+#results_csv_path='1719185675619.163.csv'
 
 
 df=pd.read_csv(results_csv_path,delimiter=';')

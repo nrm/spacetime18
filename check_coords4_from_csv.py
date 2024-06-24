@@ -11,7 +11,7 @@ args = parser.parse_args()
 coordinates_newcrop_path = args.substrate_path
 
 #results_csv_path='res/16/combined_result.csv'
-results_csv_path='res/18/combined_result.csv'
+results_csv_path='res/23/combined_result.csv'
 #results_csv_path='res/17/combined_syntresult.csv'
 
 df=pd.read_csv(results_csv_path,delimiter=';')
@@ -48,12 +48,20 @@ for layout in layouts:
             xx=lays[layout][corner+'_x'].values-lays[reference][corner+'_x'].values
             yy=lays[layout][corner+'_y'].values-lays[reference][corner+'_y'].values
             mask=lays[layout][corner+'_x'].values > 0
+            if corner==corners[-1]:
+                plt.title(layout+': '+ str(len(xx[mask]))+' crops')
             #print(mask)
             #print(len(xx[mask]))
-            plt.scatter(xx[mask],yy[mask])
             print(corner)
             print(np.mean(xx[mask]),np.mean(yy[mask]),np.std(xx[mask]),np.std(yy[mask]))
             print(np.mean(np.abs(xx[mask])),np.mean(np.abs(yy[mask])),np.median(np.abs(xx[mask])),np.median(np.abs(yy[mask])))
+            mean_diff_x=np.mean(xx[mask])
+            mean_diff_y=np.mean(yy[mask])
+            std_diff_x=np.std(xx[mask])
+            std_diff_y=np.std(yy[mask])
+            plt.scatter(xx[mask],yy[mask],label='{} mx={:.1f} my={:.1f} sx={:.1f} sy={:.1f}'.format(corner,mean_diff_x,mean_diff_y,std_diff_x,std_diff_y))
+        plt.legend()            
+            
     except:
         continue
 
