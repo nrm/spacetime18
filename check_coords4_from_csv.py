@@ -11,8 +11,8 @@ args = parser.parse_args()
 coordinates_newcrop_path = args.substrate_path
 
 #results_csv_path='res/16/combined_result.csv'
-results_csv_path='res/23/combined_result.csv'
-#results_csv_path='res/17/combined_syntresult.csv'
+#results_csv_path='res/24/combined_result.csv'
+results_csv_path='res/24/combined_syntresult.csv'
 
 df=pd.read_csv(results_csv_path,delimiter=';')
 
