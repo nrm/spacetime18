@@ -476,7 +476,8 @@ def calc_for_mults_new(diff_crop,substrate,mult_i,mult_j,deriv_type,return_type=
         else:
             diff_substrate=make_derivative(substrate,mult_i,mult_j,deriv_type)
             
-            newtransf = abcd_to_Affine_correct_from_tuple(get_abcd_from_mults_angl_xy0(mult_j, mult_i, 0, substrate.shape[1]//2, substrate.shape[0]//2))
+            # newtransf = abcd_to_Affine_correct_from_tuple(get_abcd_from_mults_angl_xy0(mult_j, mult_i, 0, substrate.shape[1]//2, substrate.shape[0]//2))
+            newtransf = abcd_to_Affine_correct_from_tuple(get_abcd_from_mults_angl_xy0(mult_j, mult_i, 0, 0, 0))
         #diff_crop=transform_and_fill_new(diff_crop0,1,1,angle=angl)
         # print(diff_substrate.shape)
         # exit(0)
@@ -756,6 +757,12 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
             
             x, y = optm[2]*ISmult,optm[3]*ISmult
             new_shape = ~newtransf * (substrate.shape[1], substrate.shape[0])
+
+            # print(new_shape)
+            new_shape_tmp = transform_and_fill_2_shape_by_affine(substrate, newtransf, optm[1], optm[0], bDownscale=True,bReturnTransform=True)
+            new_shape = (new_shape_tmp[1], new_shape_tmp[0])
+            # print(new_shape)
+            # exit(0)
             
             x_orig, y_orig = (new_shape[0] - y, new_shape[1] - x)
             crop_translate = affineTranslate(x0=x_orig, y0=y_orig)
@@ -840,7 +847,13 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
             newtransf = makeAffine(newtransf)
             
             x, y = optm[2], optm[3]
-            new_shape = ~newtransf * (cropped_substrateHD.shape[1], cropped_substrateHD.shape[0])
+            # new_shape = ~newtransf * (cropped_substrateHD.shape[1], cropped_substrateHD.shape[0])
+
+            # print(new_shape)
+            new_shape_tmp = transform_and_fill_2_shape_by_affine(cropped_substrateHD, newtransf, optm[1], optm[0], bDownscale=True,bReturnTransform=True)
+            new_shape = (new_shape_tmp[1], new_shape_tmp[0])
+            # print(new_shape)
+            # exit(0)
             
             x_orig, y_orig = (new_shape[0] - y, new_shape[1] - x)
             crop_translate = affineTranslate(x0=x_orig, y0=y_orig)
@@ -856,7 +869,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
 
 
             #transform_from_lay_to_crop_by_refind_search = ~(half_crop_translate*~(kek_translate*newtransf*crop_translate))
-            small_transform = abcd_to_Affine_correct(1,0,0,1,1,-1)
+            small_transform = abcd_to_Affine_correct(1,0,0,1,1,1)
 
             transform_from_lay_to_crop_by_refind_search =  ~(small_transform*half_crop_translate*~(kek_translate*newtransf*crop_translate))
 
@@ -1097,6 +1110,33 @@ def transform_and_fill_new_2(F, mult_x=5.,mult_y=9,angle=15,bDownscale=True,bRet
         return G,transf
     else:
         return G
+
+def transform_and_fill_2_shape_by_affine(F, affine, mult_x, mult_y, bDownscale=True,bReturnTransform=False):
+    y_range, x_range = F.shape[0:2]
+    
+    params = np.array(affine)
+    
+    a, b, c, d, x0, y0 = (params[0], params[1], params[3], params[4], params[2], params[5])
+    det_A = a*d-b*c
+        
+#    transf0 = abcd_to_Affine(a,b,c,d,x0,y0)
+#    transf0 = abcd_to_Affine_correct(a,b,c,d,x0,y0)
+    tmp=F[0][0]
+
+    #first_dim,second_dim = get_transformed_shape(~transf0,y_range,x_range)
+    #print(bDownscale)
+    first_dim  = int(1/mult_y*y_range)
+    second_dim = int(1/mult_x*x_range)
+#    print(first_dim,second_dim)
+#    first_dim  = int(-c/det_A*x_range + a/det_A*y_range - (-c/det_A*x0 + a/det_A*y0))
+#    second_dim = int( d/det_A*x_range - b/det_A*y_range - ( d/det_A*x0 - b/det_A*y0))
+#    first_dim  = int(-min(c/det_A,0)*x_range + max(a/det_A,0)*y_range - (-c/det_A*x0 + a/det_A*y0))
+#    second_dim = int( max(d/det_A,0)*x_range - min(b/det_A,0)*y_range - ( d/det_A*x0 - b/det_A*y0))
+    if bDownscale:
+        first_dim=min(first_dim, y_range)
+        second_dim=min(second_dim, x_range)
+    
+    return (max(first_dim,1), max(second_dim,1),F.shape[2])
 
 def transform_and_fill_by_affine(F, affine,bDownscale=True,bReturnTransform=False):
     y_range, x_range = F.shape[0:2]
@@ -1467,7 +1507,7 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     super_result["start"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
     super_result["start_time"] = start_time      
     
-    stem_crop, suffix_crop = path.splitext(os.path.basename(crop_file_name))
+    # stem_crop, suffix_crop = path.splitext(os.path.basename(crop_file_name))
     
     # src = rasterio.open(crop_file_name_0)
     src = rasterio.open(crop_file_name)
@@ -1488,7 +1528,8 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
     if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
         os.makedirs(os.path.join('1_20_geotiff', stem_out))
 
-    tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_mini_crop' + suffix_crop)
+    # tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_mini_crop' + suffix_crop)
+    tile_path = os.path.join('1_20_geotiff', stem_out, os.path.basename(crop_file_name))
     with rasterio.open(tile_path, 'w', **profile) as dst:
         dst.write(data)
         print(f"Saved tile: {tile_path}")
@@ -1500,51 +1541,51 @@ def new_process_crop(substrate_path, substrate, mults, refined_mults, crop_file_
         spatial_coordinate = rasterio.transform.xy(saved_transform, pixel[1], pixel[0], offset=pixel[2])
         print("spatial_coordinate from saved_transform:", spatial_coordinate)
     
-    src = rasterio.open(crop_file_name)
-    data = src.read()            
-    num_bands = src.count
-    profile = src.profile
-    profile.update({
-        'driver': 'GTiff',
-        'crs': 'EPSG:32637',
-        'transform': new_transform_by_initial_search,
-        'count': num_bands,
-        'width':crop.shape[1],
-        'height':crop.shape[0]
-    })
+    # src = rasterio.open(crop_file_name)
+    # data = src.read()            
+    # num_bands = src.count
+    # profile = src.profile
+    # profile.update({
+    #     'driver': 'GTiff',
+    #     'crs': 'EPSG:32637',
+    #     'transform': new_transform_by_initial_search,
+    #     'count': num_bands,
+    #     'width':crop.shape[1],
+    #     'height':crop.shape[0]
+    # })
     
-    stem_out, suffix_out = path.splitext(outputname)
+    # stem_out, suffix_out = path.splitext(outputname)
     
-    if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
-        os.makedirs(os.path.join('1_20_geotiff', stem_out))
+    # if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
+    #     os.makedirs(os.path.join('1_20_geotiff', stem_out))
 
-    tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_initial_search' + suffix_crop)
-    with rasterio.open(tile_path, 'w', **profile) as dst:
-        dst.write(data)
-        print(f"Saved tile: {tile_path}")
+    # tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_initial_search' + suffix_crop)
+    # with rasterio.open(tile_path, 'w', **profile) as dst:
+    #     dst.write(data)
+    #     print(f"Saved tile: {tile_path}")
     
-    src = rasterio.open(crop_file_name)
-    data = src.read()            
-    num_bands = src.count
-    profile = src.profile
-    profile.update({
-        'driver': 'GTiff',
-        'crs': 'EPSG:32637',
-        'transform': new_transform_by_refind_search,
-        'count': num_bands,
-        'width':crop.shape[1],
-        'height':crop.shape[0]
-    })
+    # src = rasterio.open(crop_file_name)
+    # data = src.read()            
+    # num_bands = src.count
+    # profile = src.profile
+    # profile.update({
+    #     'driver': 'GTiff',
+    #     'crs': 'EPSG:32637',
+    #     'transform': new_transform_by_refind_search,
+    #     'count': num_bands,
+    #     'width':crop.shape[1],
+    #     'height':crop.shape[0]
+    # })
     
-    stem_out, suffix_out = path.splitext(outputname)
+    # stem_out, suffix_out = path.splitext(outputname)
     
-    if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
-        os.makedirs(os.path.join('1_20_geotiff', stem_out))
+    # if not os.path.exists(os.path.join('1_20_geotiff', stem_out)):
+    #     os.makedirs(os.path.join('1_20_geotiff', stem_out))
 
-    tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_refind_search' + suffix_crop)
-    with rasterio.open(tile_path, 'w', **profile) as dst:
-        dst.write(data)
-        print(f"Saved tile: {tile_path}")
+    # tile_path = os.path.join('1_20_geotiff', stem_out, stem_crop + '_by_refind_search' + suffix_crop)
+    # with rasterio.open(tile_path, 'w', **profile) as dst:
+    #     dst.write(data)
+    #     print(f"Saved tile: {tile_path}")
     
     if ShowPlot:
         fig = plt.figure(figsize=(10, 8))
