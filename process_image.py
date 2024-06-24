@@ -869,7 +869,7 @@ def process_crop(crop, crop_file_name, substrate, mults, refined_mults, method='
 
 
             #transform_from_lay_to_crop_by_refind_search = ~(half_crop_translate*~(kek_translate*newtransf*crop_translate))
-            small_transform = abcd_to_Affine_correct(1,0,0,1,1,-1)
+            small_transform = abcd_to_Affine_correct(1,0,0,1,1,1)
 
             transform_from_lay_to_crop_by_refind_search =  ~(small_transform*half_crop_translate*~(kek_translate*newtransf*crop_translate))
 
